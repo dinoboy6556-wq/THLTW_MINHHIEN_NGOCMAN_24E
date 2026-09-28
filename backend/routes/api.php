@@ -7,6 +7,8 @@ use App\Http\Controllers\Api\BrandController;
 use App\Http\Controllers\Api\Admin\AdminCategoryController;
 use App\Http\Controllers\Api\Admin\AdminBrandController;
 use App\Http\Controllers\Api\Admin\AdminProductController;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Middleware\CheckAdmin;
 
 
 // API Danh mục
@@ -29,4 +31,17 @@ Route::prefix('admin')->group(function () {
 
     // 3. Quản lý Sản phẩm (FUNC-ADM-PROD-01..04)
     Route::apiResource('products', AdminProductController::class);
+});
+
+// 1. PUBLIC ROUTES (Dành cho Khách mua hàng & Khách vãng lai)
+Route::post('/login', [AuthController::class, 'login']);
+
+// 2. PROTECTED ROUTES (Yêu cầu phải ĐĂNG NHẬP + Phải là ADMIN)
+Route::middleware(['auth:sanctum', CheckAdmin::class])->prefix('admin')->group(function () {
+    // Chỉ Admin gửi đúng Token mới vào được các API Thêm/Sửa/Xóa này
+    Route::apiResource('categories', AdminCategoryController::class);
+    Route::apiResource('brands', AdminBrandController::class);
+    Route::apiResource('products', AdminProductController::class);
+
+    Route::post('/logout', [AuthController::class, 'logout']);
 });

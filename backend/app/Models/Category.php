@@ -12,42 +12,34 @@ class Category extends Model
     use HasFactory;
 
     protected $table = 'categories';
+    public $timestamps = false;
 
-    protected $fillable = [
-        'parent_id',
-        'name',
-        'slug',
-        'description',
-        'status',
-    ];
+    protected $fillable = ['parent_id', 'name', 'slug', 'description', 'status'];
 
-    // Quan hệ: Danh mục cha
-    public function parent(): BelongsTo
-    {
-        return $this->belongsTo(Category::class, 'parent_id', 'id');
-    }
-
-    // Quan hệ: Các danh mục con
-    public function children(): HasMany
-    {
-        return $this->hasMany(Category::class, 'parent_id', 'id');
-    }
-
-    // Local Scope: Lọc danh mục đang hoạt động (status = 1)
+    // Scope lọc các danh mục đang hoạt động (status = 1)
     public function scopeActive($query)
     {
         return $query->where('status', 1);
     }
 
-    // Local Scope: Chỉ lấy các danh mục gốc (không có parent)
+    // Scope lọc danh mục gốc (không có parent_id)
     public function scopeParentsOnly($query)
     {
         return $query->whereNull('parent_id');
     }
-    public $timestamps = false;
 
     public function products(): HasMany
     {
         return $this->hasMany(Product::class, 'cate_id', 'id');
+    }
+
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(Category::class, 'parent_id', 'id');
+    }
+
+    public function children(): HasMany
+    {
+        return $this->hasMany(Category::class, 'parent_id', 'id');
     }
 }
