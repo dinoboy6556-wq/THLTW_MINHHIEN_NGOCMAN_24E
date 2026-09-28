@@ -46,4 +46,5 @@ class Product extends Model
     {
         return $query->where('status', 1);
     }
+    public $timestamps = false;
 }
