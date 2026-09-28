@@ -1,60 +1,387 @@
--- --------------------------------------------------------
--- Máy chủ:                      127.0.0.1
--- Server version:               8.4.3 - MySQL Community Server - GPL
--- Server OS:                    Win64
--- HeidiSQL Phiên bản:           12.8.0.6908
--- --------------------------------------------------------
+-- phpMyAdmin SQL Dump
+-- version 5.2.1
+-- https://www.phpmyadmin.net/
+--
+-- Máy chủ: 127.0.0.1
+-- Thời gian đã tạo: Th9 14, 2026 lúc 10:48 AM
+-- Phiên bản máy phục vụ: 10.4.32-MariaDB
+-- Phiên bản PHP: 8.2.12
+
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+START TRANSACTION;
+SET time_zone = "+00:00";
+
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET NAMES utf8 */;
-/*!50503 SET NAMES utf8mb4 */;
-/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
-/*!40103 SET TIME_ZONE='+00:00' */;
-/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
-/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
-/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
 
--- Dumping data for table thltw_minhhien_ngocman_24e.brands: ~4 rows (approximately)
-INSERT INTO `brands` (`id`, `name`, `slug`, `logo`, `description`, `status`) VALUES
-	(1, 'Apple', 'apple', 'https://via.placeholder.com/150x50.png?text=Apple', 'Thương hiệu Apple', 1),
-	(2, 'Samsung', 'samsung', 'https://via.placeholder.com/150x50.png?text=Samsung', 'Thương hiệu Samsung', 1),
-	(3, 'ASUS', 'asus', 'https://via.placeholder.com/150x50.png?text=ASUS', 'Thương hiệu ASUS', 1),
-	(4, 'Sony', 'sony', 'https://via.placeholder.com/150x50.png?text=Sony', 'Thương hiệu Sony', 1);
+--
+-- Cơ sở dữ liệu: `thltw_minhhien_ngocman_24e`
+-_
 
--- Dumping data for table thltw_minhhien_ngocman_24e.cart: ~0 rows (approximately)
+-- --------------------------------------------------------
 
--- Dumping data for table thltw_minhhien_ngocman_24e.cart_item: ~0 rows (approximately)
+--
+-- Cấu trúc bảng cho bảng `brands`
+--
 
--- Dumping data for table thltw_minhhien_ngocman_24e.categories: ~5 rows (approximately)
-INSERT INTO `categories` (`id`, `name`, `slug`, `description`, `parent_id`, `status`) VALUES
-	(1, 'Điện thoại & Tablet', 'dien-thoai-tablet', 'Các sản phẩm điện thoại thông minh và máy tính bảng', NULL, 1),
-	(2, 'Laptop & Máy tính', 'laptop-may-tinh', 'Laptop văn phòng, gaming và máy tính để bàn', NULL, 1),
-	(3, 'Phụ kiện công nghệ', 'phu-kien-cong-nghe', 'Tai nghe, sạc dự phòng, cáp sạc', NULL, 1),
-	(4, 'Smartphone', 'smartphone', 'Điện thoại thông minh các hãng', 1, 1),
-	(5, 'Laptop Gaming', 'laptop-gaming', 'Laptop cấu hình cao chơi game, đồ họa', 2, 1);
+CREATE TABLE `brands` (
+  `id` int(11) NOT NULL,
+  `name` varchar(100) NOT NULL,
+  `slug` varchar(100) NOT NULL,
+  `logo` varchar(255) DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `status` tinyint(4) DEFAULT 1
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Dumping data for table thltw_minhhien_ngocman_24e.contacts: ~0 rows (approximately)
+-- --------------------------------------------------------
 
--- Dumping data for table thltw_minhhien_ngocman_24e.order: ~0 rows (approximately)
+--
+-- Cấu trúc bảng cho bảng `cart`
+--
 
--- Dumping data for table thltw_minhhien_ngocman_24e.order_detail: ~0 rows (approximately)
+CREATE TABLE `cart` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Dumping data for table thltw_minhhien_ngocman_24e.post: ~0 rows (approximately)
+-- --------------------------------------------------------
 
--- Dumping data for table thltw_minhhien_ngocman_24e.products: ~4 rows (approximately)
-INSERT INTO `products` (`id`, `cate_id`, `brand_id`, `name`, `slug`, `price`, `promo_price`, `stock`, `thumbnail`, `description`, `status`, `created_at`, `updated_at`) VALUES
-	(1, 4, 1, 'iPhone 15 Pro Max 256GB', 'iphone-15-pro-max-256gb', 34990000.00, 31990000.00, 15, 'https://via.placeholder.com/400x400.png?text=iPhone+15+Pro+Max', 'Khung Titan siêu nhẹ, chip A17 Pro mạnh mẽ, camera 5x.', 1, '2026-09-28 02:45:21', '2026-09-28 02:45:21'),
-	(2, 4, 2, 'Samsung Galaxy S24 Ultra 5G', 'samsung-galaxy-s24-ultra-5g', 33990000.00, 28990000.00, 20, 'https://via.placeholder.com/400x400.png?text=S24+Ultra', 'Quyền năng AI trong tay bạn, chip Snapdragon 8 Gen 3.', 1, '2026-09-28 02:45:21', '2026-09-28 02:45:21'),
-	(3, 5, 3, 'Laptop ASUS ROG Strix G16', 'laptop-asus-rog-strix-g16', 42990000.00, NULL, 8, 'https://via.placeholder.com/400x400.png?text=ASUS+ROG+G16', 'Intel Core i7-13650HX, RTX 4060 8GB, RAM 16GB, SSD 512GB.', 1, '2026-09-28 02:45:21', '2026-09-28 02:45:21'),
-	(4, 3, 4, 'Tai nghe Chống ồn Sony WH-1000XM5', 'tai-nghe-sony-wh-1000xm5', 8490000.00, 6990000.00, 30, 'https://via.placeholder.com/400x400.png?text=Sony+WH-1000XM5', 'Công nghệ chống ồn hàng đầu thế giới, pin 30 giờ.', 1, '2026-09-28 02:45:21', '2026-09-28 02:45:21');
+--
+-- Cấu trúc bảng cho bảng `cart_item`
+--
 
--- Dumping data for table thltw_minhhien_ngocman_24e.user: ~2 rows (approximately)
-INSERT INTO `user` (`id`, `username`, `email`, `pass`, `phone`, `address`, `role`, `status`, `created_at`, `updated_at`) VALUES
-	(1, 'admin', 'admin@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.X2g1aM3aW', '0901234567', 'TP. Hồ Chí Minh', 'admin', 1, '2026-09-28 02:46:30', '2026-09-28 02:46:30'),
-	(2, 'nguyenvana', 'vana@example.com', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.X2g1aM3aW', '0987654321', 'Hà Nội', 'member', 1, '2026-09-28 02:46:30', '2026-09-28 02:46:30');
+CREATE TABLE `cart_item` (
+  `id` int(11) NOT NULL,
+  `cart_id` int(11) NOT NULL,
+  `product_id` int(11) NOT NULL,
+  `quantity` int(11) NOT NULL DEFAULT 1
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-/*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;
-/*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;
-/*!40014 SET FOREIGN_KEY_CHECKS=IFNULL(@OLD_FOREIGN_KEY_CHECKS, 1) */;
+-- --------------------------------------------------------
+
+--
+-- Cấu trúc bảng cho bảng `categories`
+--
+
+CREATE TABLE `categories` (
+  `id` int(11) NOT NULL,
+  `name` varchar(100) NOT NULL,
+  `slug` varchar(100) NOT NULL,
+  `description` text DEFAULT NULL,
+  `parent_id` int(11) DEFAULT NULL,
+  `status` tinyint(4) DEFAULT 1
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Cấu trúc bảng cho bảng `contacts`
+--
+
+CREATE TABLE `contacts` (
+  `id` int(11) NOT NULL,
+  `full_name` varchar(100) NOT NULL,
+  `email` varchar(100) NOT NULL,
+  `phone` varchar(20) DEFAULT NULL,
+  `subject` varchar(255) DEFAULT NULL,
+  `mess` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Cấu trúc bảng cho bảng `order`
+--
+
+CREATE TABLE `order` (
+  `id` int(11) NOT NULL,
+  `order_code` varchar(50) NOT NULL,
+  `user_id` int(11) DEFAULT NULL,
+  `cus_name` varchar(100) NOT NULL,
+  `cus_email` varchar(100) NOT NULL,
+  `cus_phone` varchar(20) NOT NULL,
+  `cus_address` text NOT NULL,
+  `total_amount` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Cấu trúc bảng cho bảng `order_detail`
+--
+
+CREATE TABLE `order_detail` (
+  `id` int(11) NOT NULL,
+  `order_id` int(11) NOT NULL,
+  `product_id` int(11) NOT NULL,
+  `product_name` varchar(255) NOT NULL,
+  `quantity` int(11) NOT NULL DEFAULT 1,
+  `total_price` decimal(12,2) NOT NULL DEFAULT 0.00
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Cấu trúc bảng cho bảng `post`
+--
+
+CREATE TABLE `post` (
+  `id` int(11) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `slug` varchar(255) NOT NULL,
+  `content` longtext DEFAULT NULL,
+  `image` varchar(255) DEFAULT NULL,
+  `author_id` int(11) NOT NULL,
+  `status` tinyint(4) DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Cấu trúc bảng cho bảng `products`
+--
+
+CREATE TABLE `products` (
+  `id` int(11) NOT NULL,
+  `cate_id` int(11) NOT NULL,
+  `brand_id` int(11) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `slug` varchar(255) NOT NULL,
+  `price` decimal(12,2) NOT NULL,
+  `promo_price` decimal(12,2) DEFAULT NULL,
+  `stock` int(11) NOT NULL DEFAULT 0,
+  `thumbnail` varchar(255) DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `status` tinyint(4) DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Cấu trúc bảng cho bảng `user`
+--
+
+CREATE TABLE `user` (
+  `id` int(11) NOT NULL,
+  `username` varchar(50) NOT NULL,
+  `email` varchar(100) NOT NULL,
+  `pass` varchar(255) NOT NULL,
+  `phone` varchar(20) DEFAULT NULL,
+  `address` text DEFAULT NULL,
+  `role` varchar(20) DEFAULT 'member',
+  `status` tinyint(4) DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Chỉ mục cho các bảng đã đổ
+--
+
+--
+-- Chỉ mục cho bảng `brands`
+--
+ALTER TABLE `brands`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `slug` (`slug`);
+
+--
+-- Chỉ mục cho bảng `cart`
+--
+ALTER TABLE `cart`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `fk_cart_user` (`user_id`);
+
+--
+-- Chỉ mục cho bảng `cart_item`
+--
+ALTER TABLE `cart_item`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `fk_cart_item_cart` (`cart_id`),
+  ADD KEY `fk_cart_item_product` (`product_id`);
+
+--
+-- Chỉ mục cho bảng `categories`
+--
+ALTER TABLE `categories`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `slug` (`slug`),
+  ADD KEY `fk_categories_parent` (`parent_id`);
+
+--
+-- Chỉ mục cho bảng `contacts`
+--
+ALTER TABLE `contacts`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Chỉ mục cho bảng `order`
+--
+ALTER TABLE `order`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `order_code` (`order_code`),
+  ADD KEY `fk_order_user` (`user_id`);
+
+--
+-- Chỉ mục cho bảng `order_detail`
+--
+ALTER TABLE `order_detail`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `fk_order_detail_order` (`order_id`),
+  ADD KEY `fk_order_detail_product` (`product_id`);
+
+--
+-- Chỉ mục cho bảng `post`
+--
+ALTER TABLE `post`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `slug` (`slug`),
+  ADD KEY `fk_post_author` (`author_id`);
+
+--
+-- Chỉ mục cho bảng `products`
+--
+ALTER TABLE `products`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `slug` (`slug`),
+  ADD KEY `fk_products_categories` (`cate_id`),
+  ADD KEY `fk_products_brands` (`brand_id`);
+
+--
+-- Chỉ mục cho bảng `user`
+--
+ALTER TABLE `user`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `username` (`username`),
+  ADD UNIQUE KEY `email` (`email`);
+
+--
+-- AUTO_INCREMENT cho các bảng đã đổ
+--
+
+--
+-- AUTO_INCREMENT cho bảng `brands`
+--
+ALTER TABLE `brands`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT cho bảng `cart`
+--
+ALTER TABLE `cart`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT cho bảng `cart_item`
+--
+ALTER TABLE `cart_item`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT cho bảng `categories`
+--
+ALTER TABLE `categories`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT cho bảng `contacts`
+--
+ALTER TABLE `contacts`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT cho bảng `order`
+--
+ALTER TABLE `order`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT cho bảng `order_detail`
+--
+ALTER TABLE `order_detail`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT cho bảng `post`
+--
+ALTER TABLE `post`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT cho bảng `products`
+--
+ALTER TABLE `products`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT cho bảng `user`
+--
+ALTER TABLE `user`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- Các ràng buộc cho các bảng đã đổ
+--
+
+--
+-- Các ràng buộc cho bảng `cart`
+--
+ALTER TABLE `cart`
+  ADD CONSTRAINT `fk_cart_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE;
+
+--
+-- Các ràng buộc cho bảng `cart_item`
+--
+ALTER TABLE `cart_item`
+  ADD CONSTRAINT `fk_cart_item_cart` FOREIGN KEY (`cart_id`) REFERENCES `cart` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_cart_item_product` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE;
+
+--
+-- Các ràng buộc cho bảng `categories`
+--
+ALTER TABLE `categories`
+  ADD CONSTRAINT `fk_categories_parent` FOREIGN KEY (`parent_id`) REFERENCES `categories` (`id`) ON DELETE SET NULL;
+
+--
+-- Các ràng buộc cho bảng `order`
+--
+ALTER TABLE `order`
+  ADD CONSTRAINT `fk_order_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE SET NULL;
+
+--
+-- Các ràng buộc cho bảng `order_detail`
+--
+ALTER TABLE `order_detail`
+  ADD CONSTRAINT `fk_order_detail_order` FOREIGN KEY (`order_id`) REFERENCES `order` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_order_detail_product` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`);
+
+--
+-- Các ràng buộc cho bảng `post`
+--
+ALTER TABLE `post`
+  ADD CONSTRAINT `fk_post_author` FOREIGN KEY (`author_id`) REFERENCES `user` (`id`);
+
+--
+-- Các ràng buộc cho bảng `products`
+--
+ALTER TABLE `products`
+  ADD CONSTRAINT `fk_products_brands` FOREIGN KEY (`brand_id`) REFERENCES `brands` (`id`),
+  ADD CONSTRAINT `fk_products_categories` FOREIGN KEY (`cate_id`) REFERENCES `categories` (`id`);
+COMMIT;
+
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40111 SET SQL_NOTES=IFNULL(@OLD_SQL_NOTES, 1) */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
