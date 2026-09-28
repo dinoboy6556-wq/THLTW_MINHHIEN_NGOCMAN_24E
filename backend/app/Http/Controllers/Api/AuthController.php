@@ -12,12 +12,12 @@ use Illuminate\Support\Facades\Validator;
 class AuthController extends Controller
 {
     /**
-     * API Đăng Nhập (Cấp Bearer Token)
+     * API Đăng nhập
      */
     public function login(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'login' => 'required|string', // Nhận email hoặc username
+            'login' => 'required|string',
             'password' => 'required|string',
         ]);
 
@@ -30,7 +30,7 @@ class AuthController extends Controller
             ->orWhere('username', $request->login)
             ->first();
 
-        // Kiểm tra tài khoản và mật khẩu (Khớp với cột 'pass' trong DB của bạn)
+        // Kiểm tra tài khoản và mật khẩu (Khớp với cột 'pass' trong DB)
         if (!$user || !Hash::check($request->password, $user->pass)) {
             return response()->json([
                 'success' => false,
@@ -38,7 +38,7 @@ class AuthController extends Controller
             ], 401);
         }
 
-        // Kiểm tra tài khoản có bị khóa không
+        // Kiểm tra tài khoản bị khóa
         if ($user->status != 1) {
             return response()->json([
                 'success' => false,
@@ -46,7 +46,7 @@ class AuthController extends Controller
             ], 403);
         }
 
-        // Tạo Sanctum Token
+        // Tạo Token Sanctum mới
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
@@ -58,16 +58,17 @@ class AuthController extends Controller
                 'id' => $user->id,
                 'username' => $user->username,
                 'email' => $user->email,
-                'role' => $user->role, // 'admin' hoặc 'member'
+                'role' => $user->role,
             ]
         ], 200);
     }
 
     /**
-     * API Đăng Xuất (Hủy Token)
+     * API Đăng xuất (Thu hồi Token hiện tại)
      */
     public function logout(Request $request): JsonResponse
     {
+        // Xóa token đang thực hiện request này ra khỏi DB
         $request->user()->currentAccessToken()->delete();
 
         return response()->json([
