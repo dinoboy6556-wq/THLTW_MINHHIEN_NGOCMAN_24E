@@ -1,3 +1,5 @@
+<?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,15 +18,15 @@ class Brand extends Model
         'status',
     ];
 
-    // Quan hệ 1-N: Một thương hiệu có nhiều sản phẩm
+    // Mối quan hệ 1-N: Một thương hiệu có nhiều sản phẩm
     public function products(): HasMany
     {
-        return $this->hasMany(Product::class);
+        return $this->hasMany(Product::class, 'brand_id', 'id');
     }
 
-    // Local Scope: Lọc thương hiệu active
+    // Local Scope: Lọc các thương hiệu đang hoạt động (status = 1)
     public function scopeActive($query)
     {
-        return $query->where('status', 'active');
+        return $query->where('status', 1);
     }
 }
