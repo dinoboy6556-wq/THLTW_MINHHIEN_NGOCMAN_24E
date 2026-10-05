@@ -7,8 +7,9 @@ import { getErrorMessage } from "@/lib/axios";
 export default function AdminCategoryPage() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState("");
 
-  // Form States (Thêm/Sửa trên cùng 1 trang)
+  // Form States (Thêm/Sửa tại chỗ)
   const [editingId, setEditingId] = useState(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -20,17 +21,29 @@ export default function AdminCategoryPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
+  // Hàm bóc tách Mảng an toàn cho mọi cấu trúc JSON Laravel
+  const extractArray = (resData) => {
+    if (!resData) return [];
+    if (Array.isArray(resData)) return resData;
+    if (Array.isArray(resData.data)) return resData.data;
+    if (Array.isArray(resData.categories)) return resData.categories;
+    if (resData.data && Array.isArray(resData.data.data))
+      return resData.data.data;
+    return [];
+  };
+
   // 1. TẢI DANH SÁCH BẰNG AXIOS SERVICE
   const loadCategories = async () => {
+    setLoading(true);
+    setApiError("");
     try {
       const res = await categoryService.getAll();
-      const data = res.data;
-
-      if (Array.isArray(data)) setCategories(data);
-      else if (Array.isArray(data.data)) setCategories(data.data);
-      else setCategories([]);
+      const extractedList = extractArray(res.data);
+      setCategories(extractedList);
     } catch (err) {
-      console.error(getErrorMessage(err));
+      const errorMsg = getErrorMessage(err);
+      console.error("Lỗi API:", errorMsg);
+      setApiError(errorMsg);
       setCategories([]);
     } finally {
       setLoading(false);
@@ -54,7 +67,7 @@ export default function AdminCategoryPage() {
     setEditingId(cat.id);
     setName(cat.name || "");
     setDescription(cat.description || "");
-    setStatus(Number(cat.status ?? 1));
+    setStatus(cat.status !== undefined ? Number(cat.status) : 1);
   };
 
   // 2. THÊM / SỬA BẰNG AXIOS SERVICE
@@ -91,7 +104,7 @@ export default function AdminCategoryPage() {
     }
   };
 
-  // 4. BỘ LỌC TÌM KIẾM VÀ PHÂN TRANG (GIỮ TỪ BÀI CỦ)
+  // 4. BỘ LỌC TÌM KIẾM VÀ PHÂN TRANG
   const categoryList = Array.isArray(categories) ? categories : [];
   const filteredCategories = categoryList.filter((cat) => {
     const matchesSearch =
@@ -99,8 +112,9 @@ export default function AdminCategoryPage() {
       (cat.description &&
         cat.description.toLowerCase().includes(searchTerm.toLowerCase()));
 
+    const catStatus = cat.status !== undefined ? String(cat.status) : "1";
     const matchesStatus =
-      statusFilter === "all" || String(cat.status) === String(statusFilter);
+      statusFilter === "all" || catStatus === String(statusFilter);
 
     return matchesSearch && matchesStatus;
   });
@@ -115,11 +129,25 @@ export default function AdminCategoryPage() {
   return (
     <div>
       <h2 className="text-2xl font-bold mb-6 text-gray-800">
-        Quản Lý Danh Mục (Axios)
+        Quản Lý Danh Mục
       </h2>
 
+      {apiError && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm flex justify-between items-center">
+          <span>
+            ⚠️ <b>Lỗi kết nối API:</b> {apiError}
+          </span>
+          <button
+            onClick={loadCategories}
+            className="px-3 py-1 bg-red-600 text-white rounded-lg text-xs font-semibold"
+          >
+            Thử lại
+          </button>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* ================= FORM THÊM / SỬA TẠI CHỖ ================= */}
+        {/* FORM THÊM / SỬA TẠI CHỖ */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-fit">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-bold text-gray-800">
@@ -193,7 +221,7 @@ export default function AdminCategoryPage() {
           </form>
         </div>
 
-        {/* ================= BẢNG DANH SÁCH + TÌM KIẾM + PHÂN TRANG ================= */}
+        {/* BẢNG DANH SÁCH */}
         <div className="lg:col-span-2 flex flex-col gap-4">
           <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-4 justify-between">
             <div className="relative flex-1">
@@ -251,6 +279,7 @@ export default function AdminCategoryPage() {
                 <tbody className="divide-y text-sm">
                   {paginatedCategories.map((cat) => {
                     const isVisible =
+                      cat.status === undefined ||
                       cat.status == 1 ||
                       cat.status === true ||
                       cat.status === "1";
