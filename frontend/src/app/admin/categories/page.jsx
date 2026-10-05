@@ -1,63 +1,36 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import categoryService from "@/services/categoryService";
+import { getErrorMessage } from "@/lib/axios";
 
 export default function AdminCategoryPage() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // States cho Form Thêm/Sửa
+  // Form States (Thêm/Sửa trên cùng 1 trang)
   const [editingId, setEditingId] = useState(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState(1);
 
-  // States cho Tìm kiếm, Lọc & Phân trang
+  // States Tìm kiếm, Lọc & Phân trang
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
-  const API_URL = "http://127.0.0.1:8000/api";
-
-  // Tải danh sách danh mục DÀNH CHO ADMIN (Cần đính kèm Token)
-  // Tải danh sách danh mục (Tự động fallback & bóc tách dữ liệu)
+  // 1. TẢI DANH SÁCH BẰNG AXIOS SERVICE
   const loadCategories = async () => {
-    const token = localStorage.getItem("access_token");
     try {
-      // 1. Thử gọi API Admin kèm Token
-      let res = await fetch(`${API_URL}/admin/categories`, {
-        headers: {
-          Accept: "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const res = await categoryService.getAll();
+      const data = res.data;
 
-      // 2. Nếu API Admin không có (404) hoặc hết hạn Token (401), fallback về API Public
-      if (!res.ok) {
-        console.warn(
-          "API Admin bị lỗi/không tồn tại, tự động chuyển về API Public...",
-        );
-        res = await fetch(`${API_URL}/categories`);
-      }
-
-      const data = await res.json();
-      console.log("Dữ liệu Danh mục nhận từ Backend:", data); // Xem tại F12 Console
-
-      // 3. Bóc tách dữ liệu linh hoạt theo mọi kiểu cấu trúc Laravel trả về
-      if (Array.isArray(data)) {
-        setCategories(data);
-      } else if (Array.isArray(data.data)) {
-        setCategories(data.data);
-      } else if (Array.isArray(data.categories)) {
-        setCategories(data.categories);
-      } else if (data.data && Array.isArray(data.data.data)) {
-        setCategories(data.data.data); // Trường hợp Laravel Paginate lồng nhau
-      } else {
-        setCategories([]);
-      }
+      if (Array.isArray(data)) setCategories(data);
+      else if (Array.isArray(data.data)) setCategories(data.data);
+      else setCategories([]);
     } catch (err) {
-      console.error("Lỗi tải danh mục:", err);
+      console.error(getErrorMessage(err));
       setCategories([]);
     } finally {
       setLoading(false);
@@ -70,7 +43,6 @@ export default function AdminCategoryPage() {
     });
   }, []);
 
-  // Reset Form về trạng thái ban đầu
   const resetForm = () => {
     setName("");
     setDescription("");
@@ -78,7 +50,6 @@ export default function AdminCategoryPage() {
     setEditingId(null);
   };
 
-  // Chọn danh mục để Sửa
   const handleEditClick = (cat) => {
     setEditingId(cat.id);
     setName(cat.name || "");
@@ -86,77 +57,42 @@ export default function AdminCategoryPage() {
     setStatus(Number(cat.status ?? 1));
   };
 
-  // Xử lý Gửi Form (Thêm mới HOẶC Cập nhật)
+  // 2. THÊM / SỬA BẰNG AXIOS SERVICE
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem("access_token");
-    const isEdit = !!editingId;
-
-    const url = isEdit
-      ? `${API_URL}/admin/categories/${editingId}`
-      : `${API_URL}/admin/categories`;
-
-    const method = isEdit ? "PUT" : "POST";
+    const payload = { name, description, status: Number(status) };
 
     try {
-      const res = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ name, description, status: Number(status) }),
-      });
-
-      const result = await res.json();
-
-      if (res.ok) {
-        alert(
-          isEdit
-            ? "Cập nhật danh mục thành công!"
-            : "Thêm danh mục thành công!",
-        );
-        resetForm();
-        loadCategories();
+      if (editingId) {
+        await categoryService.update(editingId, payload);
+        alert("Cập nhật danh mục thành công!");
       } else {
-        alert(result.message || "Thao tác thất bại!");
+        await categoryService.create(payload);
+        alert("Thêm danh mục mới thành công!");
       }
+      resetForm();
+      loadCategories();
     } catch (err) {
-      console.error("Lỗi gửi form:", err);
+      alert(getErrorMessage(err));
     }
   };
 
-  // Xử lý Xóa Danh mục
+  // 3. XÓA BẰNG AXIOS SERVICE
   const handleDelete = async (id) => {
     if (!confirm("Bạn có chắc chắn muốn xóa danh mục này?")) return;
 
-    const token = localStorage.getItem("access_token");
     try {
-      const res = await fetch(`${API_URL}/admin/categories/${id}`, {
-        method: "DELETE",
-        headers: {
-          Accept: "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (res.ok) {
-        alert("Đã xóa thành công!");
-        if (editingId === id) resetForm();
-        loadCategories();
-      } else {
-        const result = await res.json();
-        alert(result.message || "Không thể xóa danh mục này!");
-      }
+      await categoryService.remove(id);
+      alert("Đã xóa thành công!");
+      if (editingId === id) resetForm();
+      loadCategories();
     } catch (err) {
-      console.error("Lỗi xóa danh mục:", err);
+      alert(getErrorMessage(err));
     }
   };
 
-  // LOGIC TÌM KIẾM & LỌC (Đảm bảo luôn là mảng)
+  // 4. BỘ LỌC TÌM KIẾM VÀ PHÂN TRANG (GIỮ TỪ BÀI CỦ)
   const categoryList = Array.isArray(categories) ? categories : [];
-
   const filteredCategories = categoryList.filter((cat) => {
     const matchesSearch =
       cat.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -169,7 +105,6 @@ export default function AdminCategoryPage() {
     return matchesSearch && matchesStatus;
   });
 
-  // LOGIC PHÂN TRANG
   const totalPages = Math.ceil(filteredCategories.length / itemsPerPage) || 1;
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedCategories = filteredCategories.slice(
@@ -180,11 +115,11 @@ export default function AdminCategoryPage() {
   return (
     <div>
       <h2 className="text-2xl font-bold mb-6 text-gray-800">
-        Quản Lý Danh Mục
+        Quản Lý Danh Mục (Axios)
       </h2>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* ================= FORM THÊM / SỬA ================= */}
+        {/* ================= FORM THÊM / SỬA TẠI CHỖ ================= */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-fit">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-bold text-gray-800">
@@ -194,7 +129,7 @@ export default function AdminCategoryPage() {
               <button
                 type="button"
                 onClick={resetForm}
-                className="text-xs text-gray-500 hover:text-gray-700 underline"
+                className="text-xs text-gray-500 hover:underline"
               >
                 Hủy sửa
               </button>
@@ -254,25 +189,13 @@ export default function AdminCategoryPage() {
               >
                 {editingId ? "Lưu Thay Đổi" : "Thêm Danh Mục"}
               </button>
-
-              {editingId && (
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="px-4 py-2 border border-gray-300 hover:bg-gray-100 rounded-lg text-gray-700 text-sm font-medium transition"
-                >
-                  Hủy
-                </button>
-              )}
             </div>
           </form>
         </div>
 
-        {/* ================= BẢNG DANH SÁCH & THANH CÔNG CỤ ================= */}
+        {/* ================= BẢNG DANH SÁCH + TÌM KIẾM + PHÂN TRANG ================= */}
         <div className="lg:col-span-2 flex flex-col gap-4">
-          {/* THANH TÌM KIẾM & LỌC */}
           <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-4 justify-between">
-            {/* Ô tìm kiếm */}
             <div className="relative flex-1">
               <input
                 type="text"
@@ -289,7 +212,6 @@ export default function AdminCategoryPage() {
               </span>
             </div>
 
-            {/* Lọc trạng thái */}
             <div className="w-full sm:w-48">
               <select
                 value={statusFilter}
@@ -306,7 +228,6 @@ export default function AdminCategoryPage() {
             </div>
           </div>
 
-          {/* BẢNG DỮ LIỆU */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             {loading ? (
               <div className="p-6 text-center text-gray-500">
@@ -329,7 +250,6 @@ export default function AdminCategoryPage() {
                 </thead>
                 <tbody className="divide-y text-sm">
                   {paginatedCategories.map((cat) => {
-                    // Kiểm tra trạng thái đa dạng dữ liệu (Number, String, Boolean)
                     const isVisible =
                       cat.status == 1 ||
                       cat.status === true ||
@@ -390,7 +310,7 @@ export default function AdminCategoryPage() {
               </table>
             )}
 
-            {/* THANH PHÂN TRANG */}
+            {/* PHÂN TRANG */}
             {totalPages > 1 && (
               <div className="p-4 border-t border-gray-100 flex items-center justify-between bg-gray-50/50">
                 <span className="text-xs text-gray-500">
