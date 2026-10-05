@@ -5,12 +5,22 @@ import { useState, useEffect } from 'react';
 export default function AdminCategoryPage() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // States cho Form Thêm/Sửa
+  const [editingId, setEditingId] = useState(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [status, setStatus] = useState(1);
+
+  // States cho Tìm kiếm, Lọc & Phân trang
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   const API_URL = 'http://127.0.0.1:8000/api';
 
-  // Hàm tải dữ liệu danh mục
+  // Tải danh sách danh mục từ Backend
   const loadCategories = async () => {
     try {
       const res = await fetch(`${API_URL}/categories`);
@@ -24,63 +34,65 @@ export default function AdminCategoryPage() {
   };
 
   useEffect(() => {
-    let ignore = false;
-
-    const fetchData = async () => {
-      try {
-        const res = await fetch(`${API_URL}/categories`);
-        const data = await res.json();
-        if (!ignore) {
-          setCategories(data.data || data);
-        }
-      } catch (err) {
-        console.error('Lỗi lấy danh mục:', err);
-      } finally {
-        if (!ignore) {
-          setLoading(false);
-        }
-      }
-    };
-
-    fetchData();
-
-    return () => {
-      ignore = true;
-    };
+    queueMicrotask(() => {
+      loadCategories();
+    });
   }, []);
 
-  // Thêm Danh mục
-  const handleAddCategory = async (e) => {
+  // Reset Form về trạng thái ban đầu
+  const resetForm = () => {
+    setName('');
+    setDescription('');
+    setStatus(1);
+    setEditingId(null);
+  };
+
+  // Chọn danh mục để Sửa
+  const handleEditClick = (cat) => {
+    setEditingId(cat.id);
+    setName(cat.name);
+    setDescription(cat.description || '');
+    setStatus(cat.status ?? 1);
+  };
+
+  // Xử lý Gửi Form (Thêm mới HOẶC Cập nhật)
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem('access_token');
+    const isEdit = !!editingId;
+
+    const url = isEdit
+      ? `${API_URL}/admin/categories/${editingId}`
+      : `${API_URL}/admin/categories`;
+
+    const method = isEdit ? 'PUT' : 'POST';
 
     try {
-      const res = await fetch(`${API_URL}/admin/categories`, {
-        method: 'POST',
+      const res = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ name, description, status: 1 }),
+        body: JSON.stringify({ name, description, status: Number(status) }),
       });
 
       const result = await res.json();
 
       if (res.ok) {
-        alert('Thêm danh mục thành công!');
-        setName('');
-        setDescription('');
-        loadCategories(); // Tải lại bảng
+        alert(isEdit ? 'Cập nhật danh mục thành công!' : 'Thêm danh mục thành công!');
+        resetForm();
+        loadCategories();
       } else {
-        alert(result.message || 'Thêm thất bại!');
+        alert(result.message || 'Thao tác thất bại!');
       }
     } catch (err) {
-      console.error('Lỗi thêm danh mục:', err);
+      console.error('Lỗi gửi form:', err);
     }
   };
 
-  // Xóa Danh mục
+  // Xử lý Xóa Danh mục
   const handleDelete = async (id) => {
     if (!confirm('Bạn có chắc chắn muốn xóa danh mục này?')) return;
 
@@ -96,7 +108,8 @@ export default function AdminCategoryPage() {
 
       if (res.ok) {
         alert('Đã xóa thành công!');
-        loadCategories(); // Tải lại bảng
+        if (editingId === id) resetForm();
+        loadCategories();
       } else {
         const result = await res.json();
         alert(result.message || 'Không thể xóa danh mục này!');
@@ -106,15 +119,46 @@ export default function AdminCategoryPage() {
     }
   };
 
+  // LOGIC TÌM KIẾM & LỌC
+  const filteredCategories = categories.filter((cat) => {
+    const matchesSearch =
+      cat.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (cat.description && cat.description.toLowerCase().includes(searchTerm.toLowerCase()));
+
+    const matchesStatus =
+      statusFilter === 'all' || String(cat.status) === String(statusFilter);
+
+    return matchesSearch && matchesStatus;
+  });
+
+  // LOGIC PHÂN TRANG
+  const totalPages = Math.ceil(filteredCategories.length / itemsPerPage) || 1;
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedCategories = filteredCategories.slice(startIndex, startIndex + itemsPerPage);
+
   return (
     <div>
       <h2 className="text-2xl font-bold mb-6 text-gray-800">Quản Lý Danh Mục</h2>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* FORM THÊM DANH MỤC */}
+        {/* ================= FORM THÊM / SỬA ================= */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-fit">
-          <h3 className="text-lg font-bold mb-4 text-gray-800">Thêm Danh Mục Mới</h3>
-          <form onSubmit={handleAddCategory} className="flex flex-col gap-4">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-bold text-gray-800">
+              {editingId ? 'Cập Nhật Danh Mục' : 'Thêm Danh Mục Mới'}
+            </h3>
+            {editingId && (
+              <button
+                type="button"
+                onClick={resetForm}
+                className="text-xs text-gray-500 hover:text-gray-700 underline"
+              >
+                Hủy sửa
+              </button>
+            )}
+          </div>
+
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Tên danh mục</label>
               <input
@@ -122,61 +166,202 @@ export default function AdminCategoryPage() {
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                 placeholder="VD: Màn Hình"
               />
             </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả</label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
                 rows="3"
+                placeholder="Mô tả danh mục..."
               ></textarea>
             </div>
-            <button
-              type="submit"
-              className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 rounded-lg transition"
-            >
-              Thêm Danh Mục
-            </button>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Trạng thái</label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(Number(e.target.value))}
+                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+              >
+                <option value={1}>Hiển thị</option>
+                <option value={0}>Ẩn</option>
+              </select>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                className={`flex-1 font-medium py-2 rounded-lg transition text-white ${
+                  editingId ? 'bg-amber-600 hover:bg-amber-700' : 'bg-indigo-600 hover:bg-indigo-700'
+                }`}
+              >
+                {editingId ? 'Lưu Thay Đổi' : 'Thêm Danh Mục'}
+              </button>
+
+              {editingId && (
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="px-4 py-2 border border-gray-300 hover:bg-gray-100 rounded-lg text-gray-700 text-sm font-medium transition"
+                >
+                  Hủy
+                </button>
+              )}
+            </div>
           </form>
         </div>
 
-        {/* BẢNG DANH SÁCH DANH MỤC */}
-        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          {loading ? (
-            <div className="p-6 text-center text-gray-500">Đang tải danh mục...</div>
-          ) : (
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-gray-50 text-gray-600 text-sm border-b">
-                  <th className="p-4">ID</th>
-                  <th className="p-4">Tên danh mục</th>
-                  <th className="p-4">Slug</th>
-                  <th className="p-4 text-center">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y text-sm">
-                {categories.map((cat) => (
-                  <tr key={cat.id} className="hover:bg-gray-50">
-                    <td className="p-4 font-bold">{cat.id}</td>
-                    <td className="p-4 text-gray-800 font-medium">{cat.name}</td>
-                    <td className="p-4 text-gray-500">{cat.slug}</td>
-                    <td className="p-4 text-center">
-                      <button
-                        onClick={() => handleDelete(cat.id)}
-                        className="bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1 rounded-md text-xs font-semibold transition"
-                      >
-                        Xóa
-                      </button>
-                    </td>
+        {/* ================= BẢNG DANH SÁCH & THANH CÔNG CỤ ================= */}
+        <div className="lg:col-span-2 flex flex-col gap-4">
+          {/* THANH TÌM KIẾM & LỌC */}
+          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-4 justify-between">
+            {/* Ô tìm kiếm */}
+            <div className="relative flex-1">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1); // Reset trang khi nhập tìm kiếm
+                }}
+                placeholder="Tìm kiếm danh mục..."
+                className="w-full pl-9 pr-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              <span className="absolute left-3 top-2.5 text-gray-400 text-sm">🔍</span>
+            </div>
+
+            {/* Lọc trạng thái */}
+            <div className="w-full sm:w-48">
+              <select
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setCurrentPage(1); // Reset trang khi lọc trạng thái
+                }}
+                className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="all">Tất cả trạng thái</option>
+                <option value="1">Đang hiển thị</option>
+                <option value="0">Đang ẩn</option>
+              </select>
+            </div>
+          </div>
+
+          {/* BẢNG DỮ LIỆU */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            {loading ? (
+              <div className="p-6 text-center text-gray-500">Đang tải danh mục...</div>
+            ) : paginatedCategories.length === 0 ? (
+              <div className="p-6 text-center text-gray-500">Không tìm thấy danh mục phù hợp.</div>
+            ) : (
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-gray-50 text-gray-600 text-sm border-b">
+                    <th className="p-4">ID</th>
+                    <th className="p-4">Tên danh mục</th>
+                    <th className="p-4">Slug</th>
+                    <th className="p-4 text-center">Trạng thái</th>
+                    <th className="p-4 text-center">Thao tác</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+                </thead>
+                <tbody className="divide-y text-sm">
+                  {paginatedCategories.map((cat) => (
+                    <tr
+                      key={cat.id}
+                      className={`hover:bg-gray-50 transition ${
+                        editingId === cat.id ? 'bg-amber-50/50' : ''
+                      }`}
+                    >
+                      <td className="p-4 font-bold text-gray-700">{cat.id}</td>
+                      <td className="p-4 text-gray-800 font-medium">
+                        <div>{cat.name}</div>
+                        {cat.description && (
+                          <div className="text-xs text-gray-400 font-normal line-clamp-1">
+                            {cat.description}
+                          </div>
+                        )}
+                      </td>
+                      <td className="p-4 text-gray-500 text-xs">{cat.slug}</td>
+                      <td className="p-4 text-center">
+                        <span
+                          className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${
+                            cat.status == 1
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-gray-100 text-gray-600'
+                          }`}
+                        >
+                          {cat.status == 1 ? 'Hiển thị' : 'Ẩn'}
+                        </span>
+                      </td>
+                      <td className="p-4 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => handleEditClick(cat)}
+                            className="bg-amber-50 text-amber-600 hover:bg-amber-100 px-3 py-1 rounded-md text-xs font-semibold transition"
+                          >
+                            Sửa
+                          </button>
+                          <button
+                            onClick={() => handleDelete(cat.id)}
+                            className="bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1 rounded-md text-xs font-semibold transition"
+                          >
+                            Xóa
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+
+            {/* THANH PHÂN TRANG */}
+            {totalPages > 1 && (
+              <div className="p-4 border-t border-gray-100 flex items-center justify-between bg-gray-50/50">
+                <span className="text-xs text-gray-500">
+                  Hiển thị {startIndex + 1} - {Math.min(startIndex + itemsPerPage, filteredCategories.length)} / {filteredCategories.length} danh mục
+                </span>
+
+                <div className="flex items-center gap-1">
+                  <button
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage((prev) => prev - 1)}
+                    className="px-3 py-1 border rounded-md text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 bg-white"
+                  >
+                    Trước
+                  </button>
+
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`px-3 py-1 rounded-md text-xs font-medium transition ${
+                        currentPage === page
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-white border text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+
+                  <button
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage((prev) => prev + 1)}
+                    className="px-3 py-1 border rounded-md text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 bg-white"
+                  >
+                    Sau
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
