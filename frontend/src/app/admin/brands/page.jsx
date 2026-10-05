@@ -22,29 +22,12 @@ export default function AdminBrandPage() {
 
   // Tải danh sách thương hiệu từ Backend
   const loadBrands = async () => {
-    const token = localStorage.getItem("access_token");
     try {
-      const res = await fetch(`${API_URL}/admin/brands`, {
-        headers: {
-          Accept: "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const res = await fetch(`${API_URL}/brands`);
       const data = await res.json();
-
-      // Kiểm tra an toàn xem dữ liệu trả về có đúng là mảng hay không
-      if (Array.isArray(data)) {
-        setBrands(data);
-      } else if (Array.isArray(data.data)) {
-        setBrands(data.data);
-      } else if (Array.isArray(data.brands)) {
-        setBrands(data.brands);
-      } else {
-        setBrands([]);
-      }
+      setBrands(data.data || data);
     } catch (err) {
       console.error("Lỗi lấy danh sách thương hiệu:", err);
-      setBrands([]);
     } finally {
       setLoading(false);
     }
@@ -69,7 +52,7 @@ export default function AdminBrandPage() {
     setEditingId(brand.id);
     setName(brand.name);
     setDescription(brand.description || "");
-    setStatus(Number(brand.status ?? 1));
+    setStatus(brand.status ?? 1);
   };
 
   // Xử lý Gửi Form (Thêm mới HOẶC Cập nhật)
@@ -140,12 +123,10 @@ export default function AdminBrandPage() {
     }
   };
 
-  // LOGIC TÌM KIẾM & LỌC (Sử dụng Array.isArray để đảm bảo luôn là mảng)
-  const brandList = Array.isArray(brands) ? brands : [];
-
-  const filteredBrands = brandList.filter((brand) => {
+  // LOGIC TÌM KIẾM & LỌC
+  const filteredBrands = brands.filter((brand) => {
     const matchesSearch =
-      brand.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      brand.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (brand.description &&
         brand.description.toLowerCase().includes(searchTerm.toLowerCase()));
 
@@ -314,63 +295,56 @@ export default function AdminBrandPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y text-sm">
-                  {paginatedBrands.map((brand) => {
-                    const isVisible =
-                      brand.status == 1 ||
-                      brand.status === true ||
-                      brand.status === "1";
-
-                    return (
-                      <tr
-                        key={brand.id}
-                        className={`hover:bg-gray-50 transition ${
-                          editingId === brand.id ? "bg-amber-50/50" : ""
-                        }`}
-                      >
-                        <td className="p-4 font-bold text-gray-700">
-                          {brand.id}
-                        </td>
-                        <td className="p-4 text-gray-800 font-medium">
-                          <div>{brand.name}</div>
-                          {brand.description && (
-                            <div className="text-xs text-gray-400 font-normal line-clamp-1">
-                              {brand.description}
-                            </div>
-                          )}
-                        </td>
-                        <td className="p-4 text-gray-500 text-xs">
-                          {brand.slug}
-                        </td>
-                        <td className="p-4 text-center">
-                          <span
-                            className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${
-                              isVisible
-                                ? "bg-emerald-100 text-emerald-800"
-                                : "bg-gray-100 text-gray-600"
-                            }`}
-                          >
-                            {isVisible ? "Hiển thị" : "Ẩn"}
-                          </span>
-                        </td>
-                        <td className="p-4 text-center">
-                          <div className="flex items-center justify-center gap-2">
-                            <button
-                              onClick={() => handleEditClick(brand)}
-                              className="bg-amber-50 text-amber-600 hover:bg-amber-100 px-3 py-1 rounded-md text-xs font-semibold transition"
-                            >
-                              Sửa
-                            </button>
-                            <button
-                              onClick={() => handleDelete(brand.id)}
-                              className="bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1 rounded-md text-xs font-semibold transition"
-                            >
-                              Xóa
-                            </button>
+                  {paginatedBrands.map((brand) => (
+                    <tr
+                      key={brand.id}
+                      className={`hover:bg-gray-50 transition ${
+                        editingId === brand.id ? "bg-amber-50/50" : ""
+                      }`}
+                    >
+                      <td className="p-4 font-bold text-gray-700">
+                        {brand.id}
+                      </td>
+                      <td className="p-4 text-gray-800 font-medium">
+                        <div>{brand.name}</div>
+                        {brand.description && (
+                          <div className="text-xs text-gray-400 font-normal line-clamp-1">
+                            {brand.description}
                           </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                        )}
+                      </td>
+                      <td className="p-4 text-gray-500 text-xs">
+                        {brand.slug}
+                      </td>
+                      <td className="p-4 text-center">
+                        <span
+                          className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${
+                            brand.status == 1
+                              ? "bg-emerald-100 text-emerald-800"
+                              : "bg-gray-100 text-gray-600"
+                          }`}
+                        >
+                          {brand.status == 1 ? "Hiển thị" : "Ẩn"}
+                        </span>
+                      </td>
+                      <td className="p-4 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => handleEditClick(brand)}
+                            className="bg-amber-50 text-amber-600 hover:bg-amber-100 px-3 py-1 rounded-md text-xs font-semibold transition"
+                          >
+                            Sửa
+                          </button>
+                          <button
+                            onClick={() => handleDelete(brand.id)}
+                            className="bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1 rounded-md text-xs font-semibold transition"
+                          >
+                            Xóa
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             )}

@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
 
 export default function AdminCategoryPage() {
   const [categories, setCategories] = useState([]);
@@ -8,33 +8,26 @@ export default function AdminCategoryPage() {
 
   // States cho Form Thêm/Sửa
   const [editingId, setEditingId] = useState(null);
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
   const [status, setStatus] = useState(1);
 
   // States cho Tìm kiếm, Lọc & Phân trang
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
-  const API_URL = "http://127.0.0.1:8000/api";
+  const API_URL = 'http://127.0.0.1:8000/api';
 
-  // Tải danh sách danh mục DÀNH CHO ADMIN (Cần đính kèm Token)
+  // Tải danh sách danh mục từ Backend
   const loadCategories = async () => {
-    const token = localStorage.getItem("access_token");
     try {
-      // Gọi API Admin thay vì API công khai
-      const res = await fetch(`${API_URL}/admin/categories`, {
-        headers: {
-          Accept: "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const res = await fetch(`${API_URL}/categories`);
       const data = await res.json();
       setCategories(data.data || data);
     } catch (err) {
-      console.error("Lỗi lấy danh mục Admin:", err);
+      console.error('Lỗi lấy danh mục:', err);
     } finally {
       setLoading(false);
     }
@@ -46,36 +39,41 @@ export default function AdminCategoryPage() {
     });
   }, []);
 
+  // Reset Form về trạng thái ban đầu
   const resetForm = () => {
-    setName("");
-    setDescription("");
+    setName('');
+    setDescription('');
     setStatus(1);
     setEditingId(null);
   };
 
+  // Chọn danh mục để Sửa
   const handleEditClick = (cat) => {
     setEditingId(cat.id);
     setName(cat.name);
-    setDescription(cat.description || "");
-    setStatus(Number(cat.status ?? 1));
+    setDescription(cat.description || '');
+    setStatus(cat.status ?? 1);
   };
 
+  // Xử lý Gửi Form (Thêm mới HOẶC Cập nhật)
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem("access_token");
+    const token = localStorage.getItem('access_token');
     const isEdit = !!editingId;
 
     const url = isEdit
       ? `${API_URL}/admin/categories/${editingId}`
       : `${API_URL}/admin/categories`;
 
+    const method = isEdit ? 'PUT' : 'POST';
+
     try {
       const res = await fetch(url, {
-        method: isEdit ? "PUT" : "POST",
+        method,
         headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({ name, description, status: Number(status) }),
       });
@@ -83,44 +81,41 @@ export default function AdminCategoryPage() {
       const result = await res.json();
 
       if (res.ok) {
-        alert(
-          isEdit
-            ? "Cập nhật danh mục thành công!"
-            : "Thêm danh mục thành công!",
-        );
+        alert(isEdit ? 'Cập nhật danh mục thành công!' : 'Thêm danh mục thành công!');
         resetForm();
         loadCategories();
       } else {
-        alert(result.message || "Thao tác thất bại!");
+        alert(result.message || 'Thao tác thất bại!');
       }
     } catch (err) {
-      console.error("Lỗi gửi form:", err);
+      console.error('Lỗi gửi form:', err);
     }
   };
 
+  // Xử lý Xóa Danh mục
   const handleDelete = async (id) => {
-    if (!confirm("Bạn có chắc chắn muốn xóa danh mục này?")) return;
+    if (!confirm('Bạn có chắc chắn muốn xóa danh mục này?')) return;
 
-    const token = localStorage.getItem("access_token");
+    const token = localStorage.getItem('access_token');
     try {
       const res = await fetch(`${API_URL}/admin/categories/${id}`, {
-        method: "DELETE",
+        method: 'DELETE',
         headers: {
-          Accept: "application/json",
-          Authorization: `Bearer ${token}`,
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
       });
 
       if (res.ok) {
-        alert("Đã xóa thành công!");
+        alert('Đã xóa thành công!');
         if (editingId === id) resetForm();
         loadCategories();
       } else {
         const result = await res.json();
-        alert(result.message || "Không thể xóa danh mục này!");
+        alert(result.message || 'Không thể xóa danh mục này!');
       }
     } catch (err) {
-      console.error("Lỗi xóa danh mục:", err);
+      console.error('Lỗi xóa danh mục:', err);
     }
   };
 
@@ -128,34 +123,29 @@ export default function AdminCategoryPage() {
   const filteredCategories = categories.filter((cat) => {
     const matchesSearch =
       cat.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (cat.description &&
-        cat.description.toLowerCase().includes(searchTerm.toLowerCase()));
+      (cat.description && cat.description.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const matchesStatus =
-      statusFilter === "all" || String(cat.status) === String(statusFilter);
+      statusFilter === 'all' || String(cat.status) === String(statusFilter);
 
     return matchesSearch && matchesStatus;
   });
 
+  // LOGIC PHÂN TRANG
   const totalPages = Math.ceil(filteredCategories.length / itemsPerPage) || 1;
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedCategories = filteredCategories.slice(
-    startIndex,
-    startIndex + itemsPerPage,
-  );
+  const paginatedCategories = filteredCategories.slice(startIndex, startIndex + itemsPerPage);
 
   return (
     <div>
-      <h2 className="text-2xl font-bold mb-6 text-gray-800">
-        Quản Lý Danh Mục
-      </h2>
+      <h2 className="text-2xl font-bold mb-6 text-gray-800">Quản Lý Danh Mục</h2>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* FORM THÊM / SỬA */}
+        {/* ================= FORM THÊM / SỬA ================= */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-fit">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-bold text-gray-800">
-              {editingId ? "Cập Nhật Danh Mục" : "Thêm Danh Mục Mới"}
+              {editingId ? 'Cập Nhật Danh Mục' : 'Thêm Danh Mục Mới'}
             </h3>
             {editingId && (
               <button
@@ -170,9 +160,7 @@ export default function AdminCategoryPage() {
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Tên danh mục *
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Tên danh mục</label>
               <input
                 type="text"
                 required
@@ -184,9 +172,7 @@ export default function AdminCategoryPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Mô tả
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả</label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
@@ -197,9 +183,7 @@ export default function AdminCategoryPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Trạng thái
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Trạng thái</label>
               <select
                 value={status}
                 onChange={(e) => setStatus(Number(e.target.value))}
@@ -214,12 +198,10 @@ export default function AdminCategoryPage() {
               <button
                 type="submit"
                 className={`flex-1 font-medium py-2 rounded-lg transition text-white ${
-                  editingId
-                    ? "bg-amber-600 hover:bg-amber-700"
-                    : "bg-indigo-600 hover:bg-indigo-700"
+                  editingId ? 'bg-amber-600 hover:bg-amber-700' : 'bg-indigo-600 hover:bg-indigo-700'
                 }`}
               >
-                {editingId ? "Lưu Thay Đổi" : "Thêm Danh Mục"}
+                {editingId ? 'Lưu Thay Đổi' : 'Thêm Danh Mục'}
               </button>
 
               {editingId && (
@@ -235,9 +217,11 @@ export default function AdminCategoryPage() {
           </form>
         </div>
 
-        {/* BẢNG DANH SÁCH */}
+        {/* ================= BẢNG DANH SÁCH & THANH CÔNG CỤ ================= */}
         <div className="lg:col-span-2 flex flex-col gap-4">
+          {/* THANH TÌM KIẾM & LỌC */}
           <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-4 justify-between">
+            {/* Ô tìm kiếm */}
             <div className="relative flex-1">
               <input
                 type="text"
@@ -249,11 +233,10 @@ export default function AdminCategoryPage() {
                 placeholder="Tìm kiếm danh mục..."
                 className="w-full pl-9 pr-4 py-2 border rounded-lg text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
-              <span className="absolute left-3 top-2.5 text-gray-400 text-sm">
-                🔍
-              </span>
+              <span className="absolute left-3 top-2.5 text-gray-400 text-sm">🔍</span>
             </div>
 
+            {/* Lọc trạng thái */}
             <div className="w-full sm:w-48">
               <select
                 value={statusFilter}
@@ -270,15 +253,12 @@ export default function AdminCategoryPage() {
             </div>
           </div>
 
+          {/* BẢNG DỮ LIỆU */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             {loading ? (
-              <div className="p-6 text-center text-gray-500">
-                Đang tải danh mục...
-              </div>
+              <div className="p-6 text-center text-gray-500">Đang tải danh mục...</div>
             ) : paginatedCategories.length === 0 ? (
-              <div className="p-6 text-center text-gray-500">
-                Không tìm thấy danh mục phù hợp.
-              </div>
+              <div className="p-6 text-center text-gray-500">Không tìm thấy danh mục phù hợp.</div>
             ) : (
               <table className="w-full text-left border-collapse">
                 <thead>
@@ -291,78 +271,61 @@ export default function AdminCategoryPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y text-sm">
-                  {paginatedCategories.map((cat) => {
-                    // Kiểm tra trạng thái linh hoạt (cho cả kiểu Boolean, Number hoặc String)
-                    const isVisible =
-                      cat.status == 1 ||
-                      cat.status === true ||
-                      cat.status === "1";
-
-                    return (
-                      <tr
-                        key={cat.id}
-                        className={`hover:bg-gray-50 transition ${
-                          editingId === cat.id ? "bg-amber-50/50" : ""
-                        }`}
-                      >
-                        <td className="p-4 font-bold text-gray-700">
-                          {cat.id}
-                        </td>
-                        <td className="p-4 text-gray-800 font-medium">
-                          <div>{cat.name}</div>
-                          {cat.description && (
-                            <div className="text-xs text-gray-400 font-normal line-clamp-1">
-                              {cat.description}
-                            </div>
-                          )}
-                        </td>
-                        <td className="p-4 text-gray-500 text-xs">
-                          {cat.slug}
-                        </td>
-                        <td className="p-4 text-center">
-                          <span
-                            className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${
-                              isVisible
-                                ? "bg-emerald-100 text-emerald-800"
-                                : "bg-gray-100 text-gray-600"
-                            }`}
-                          >
-                            {isVisible ? "Hiển thị" : "Ẩn"}
-                          </span>
-                        </td>
-                        <td className="p-4 text-center">
-                          <div className="flex items-center justify-center gap-2">
-                            <button
-                              onClick={() => handleEditClick(cat)}
-                              className="bg-amber-50 text-amber-600 hover:bg-amber-100 px-3 py-1 rounded-md text-xs font-semibold transition"
-                            >
-                              Sửa
-                            </button>
-                            <button
-                              onClick={() => handleDelete(cat.id)}
-                              className="bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1 rounded-md text-xs font-semibold transition"
-                            >
-                              Xóa
-                            </button>
+                  {paginatedCategories.map((cat) => (
+                    <tr
+                      key={cat.id}
+                      className={`hover:bg-gray-50 transition ${
+                        editingId === cat.id ? 'bg-amber-50/50' : ''
+                      }`}
+                    >
+                      <td className="p-4 font-bold text-gray-700">{cat.id}</td>
+                      <td className="p-4 text-gray-800 font-medium">
+                        <div>{cat.name}</div>
+                        {cat.description && (
+                          <div className="text-xs text-gray-400 font-normal line-clamp-1">
+                            {cat.description}
                           </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                        )}
+                      </td>
+                      <td className="p-4 text-gray-500 text-xs">{cat.slug}</td>
+                      <td className="p-4 text-center">
+                        <span
+                          className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${
+                            cat.status == 1
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-gray-100 text-gray-600'
+                          }`}
+                        >
+                          {cat.status == 1 ? 'Hiển thị' : 'Ẩn'}
+                        </span>
+                      </td>
+                      <td className="p-4 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => handleEditClick(cat)}
+                            className="bg-amber-50 text-amber-600 hover:bg-amber-100 px-3 py-1 rounded-md text-xs font-semibold transition"
+                          >
+                            Sửa
+                          </button>
+                          <button
+                            onClick={() => handleDelete(cat.id)}
+                            className="bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1 rounded-md text-xs font-semibold transition"
+                          >
+                            Xóa
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             )}
 
-            {/* PHÂN TRANG */}
+            {/* THANH PHÂN TRANG */}
             {totalPages > 1 && (
               <div className="p-4 border-t border-gray-100 flex items-center justify-between bg-gray-50/50">
                 <span className="text-xs text-gray-500">
-                  Hiển thị {startIndex + 1} -{" "}
-                  {Math.min(
-                    startIndex + itemsPerPage,
-                    filteredCategories.length,
-                  )}{" "}
-                  / {filteredCategories.length} danh mục
+                  Hiển thị {startIndex + 1} - {Math.min(startIndex + itemsPerPage, filteredCategories.length)} / {filteredCategories.length} danh mục
                 </span>
 
                 <div className="flex items-center gap-1">
@@ -374,21 +337,19 @@ export default function AdminCategoryPage() {
                     Trước
                   </button>
 
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                    (page) => (
-                      <button
-                        key={page}
-                        onClick={() => setCurrentPage(page)}
-                        className={`px-3 py-1 rounded-md text-xs font-medium transition ${
-                          currentPage === page
-                            ? "bg-indigo-600 text-white"
-                            : "bg-white border text-gray-700 hover:bg-gray-100"
-                        }`}
-                      >
-                        {page}
-                      </button>
-                    ),
-                  )}
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`px-3 py-1 rounded-md text-xs font-medium transition ${
+                        currentPage === page
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-white border text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
 
                   <button
                     disabled={currentPage === totalPages}
