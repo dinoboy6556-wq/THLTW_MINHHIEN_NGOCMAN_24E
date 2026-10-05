@@ -1,56 +1,77 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 export default function ProductForm({ editingProduct, onSuccess, onCancel }) {
   const [formData, setFormData] = useState({
-    name: '',
-    price: '',
-    quantity: '',
-    category_id: '',
-    brand_id: '',
-    description: '',
+    name: "",
+    cate_id: "",
+    brand_id: "",
+    price: "",
+    promo_price: "",
+    stock: "",
+    thumbnail: "",
+    description: "",
     status: 1,
   });
 
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(false);
-  const API_URL = 'http://127.0.0.1:8000/api';
 
-  // Load danh mục & thương hiệu làm dropdown chọn lựa
+  const API_URL = "http://127.0.0.1:8000/api";
+
+  // Tải danh sách Danh mục và Thương hiệu cho Dropdown
   useEffect(() => {
     queueMicrotask(() => {
       const fetchDropdownData = async () => {
+        const token = localStorage.getItem("access_token");
+        const headers = {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        };
+
         try {
           const [resCate, resBrand] = await Promise.all([
-            fetch(`${API_URL}/categories`),
-            fetch(`${API_URL}/brands`),
+            fetch(`${API_URL}/admin/categories`, { headers }).catch(() =>
+              fetch(`${API_URL}/categories`),
+            ),
+            fetch(`${API_URL}/admin/brands`, { headers }).catch(() =>
+              fetch(`${API_URL}/brands`),
+            ),
           ]);
+
           const dataCate = await resCate.json();
           const dataBrand = await resBrand.json();
 
-          setCategories(dataCate.data || dataCate);
-          setBrands(dataBrand.data || dataBrand);
+          setCategories(
+            Array.isArray(dataCate) ? dataCate : dataCate.data || [],
+          );
+          setBrands(
+            Array.isArray(dataBrand) ? dataBrand : dataBrand.data || [],
+          );
         } catch (err) {
-          console.error('Lỗi tải dữ liệu danh mục/thương hiệu:', err);
+          console.error("Lỗi tải dữ liệu dropdown:", err);
         }
       };
+
       fetchDropdownData();
     });
   }, []);
 
-  // Điền dữ liệu khi ở chế độ Sửa
+  // Điền dữ liệu cũ vào Form khi bấm Sửa
   useEffect(() => {
     if (editingProduct) {
       queueMicrotask(() => {
         setFormData({
-          name: editingProduct.name || '',
-          price: editingProduct.price || '',
-          quantity: editingProduct.quantity || '',
-          category_id: editingProduct.category_id || '',
-          brand_id: editingProduct.brand_id || '',
-          description: editingProduct.description || '',
+          name: editingProduct.name || "",
+          cate_id: editingProduct.cate_id || "",
+          brand_id: editingProduct.brand_id || "",
+          price: editingProduct.price || "",
+          promo_price: editingProduct.promo_price || "",
+          stock: editingProduct.stock || "",
+          thumbnail: editingProduct.thumbnail || "",
+          description: editingProduct.description || "",
           status: editingProduct.status ?? 1,
         });
       });
@@ -65,7 +86,7 @@ export default function ProductForm({ editingProduct, onSuccess, onCancel }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    const token = localStorage.getItem('access_token');
+    const token = localStorage.getItem("access_token");
     const isEdit = !!editingProduct;
 
     const url = isEdit
@@ -74,59 +95,126 @@ export default function ProductForm({ editingProduct, onSuccess, onCancel }) {
 
     try {
       const res = await fetch(url, {
-        method: isEdit ? 'PUT' : 'POST',
+        method: isEdit ? "PUT" : "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          cate_id: Number(formData.cate_id),
+          brand_id: Number(formData.brand_id),
+          price: Number(formData.price),
+          promo_price: formData.promo_price
+            ? Number(formData.promo_price)
+            : null,
+          stock: Number(formData.stock),
+          status: Number(formData.status),
+        }),
       });
 
       const result = await res.json();
 
       if (res.ok) {
-        alert(isEdit ? 'Cập nhật sản phẩm thành công!' : 'Thêm sản phẩm thành công!');
+        alert(
+          isEdit
+            ? "Cập nhật sản phẩm thành công!"
+            : "Thêm sản phẩm thành công!",
+        );
         onSuccess();
       } else {
-        alert(result.message || 'Thao tác thất bại!');
+        alert(result.message || "Thao tác thất bại!");
       }
     } catch (err) {
-      console.error('Lỗi khi lưu sản phẩm:', err);
+      console.error("Lỗi lưu sản phẩm:", err);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-4">
+    <form
+      onSubmit={handleSubmit}
+      className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col gap-4"
+    >
       <div className="flex justify-between items-center border-b pb-3">
         <h3 className="font-bold text-gray-800 text-lg">
-          {editingProduct ? 'Sửa Sản Phẩm' : 'Thêm Sản Phẩm Mới'}
+          {editingProduct ? "Cập Nhật Sản Phẩm" : "Thêm Sản Phẩm Mới"}
         </h3>
         {editingProduct && (
-          <button type="button" onClick={onCancel} className="text-xs text-gray-500 hover:underline">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="text-xs text-gray-500 hover:underline"
+          >
             Hủy sửa
           </button>
         )}
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-gray-700 mb-1">Tên sản phẩm *</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Tên sản phẩm *
+        </label>
         <input
           type="text"
           name="name"
           required
           value={formData.name}
           onChange={handleChange}
-          className="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-          placeholder="VD: Laptop Dell XPS 13"
+          className="w-full px-3 py-2 border rounded-lg text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          placeholder="VD: iPhone 15 Pro Max 256GB"
         />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs font-semibold text-gray-700 mb-1">Giá bán (VNĐ) *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Danh mục *
+          </label>
+          <select
+            name="cate_id"
+            required
+            value={formData.cate_id}
+            onChange={handleChange}
+            className="w-full px-3 py-2 border rounded-lg text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="">-- Chọn danh mục --</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Thương hiệu *
+          </label>
+          <select
+            name="brand_id"
+            required
+            value={formData.brand_id}
+            onChange={handleChange}
+            className="w-full px-3 py-2 border rounded-lg text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="">-- Chọn thương hiệu --</option>
+            {brands.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Giá bán (VNĐ) *
+          </label>
           <input
             type="number"
             name="price"
@@ -134,82 +222,83 @@ export default function ProductForm({ editingProduct, onSuccess, onCancel }) {
             min="0"
             value={formData.price}
             onChange={handleChange}
-            className="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-            placeholder="15000000"
+            className="w-full px-3 py-2 border rounded-lg text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            placeholder="34990000"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-700 mb-1">Số lượng *</label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Giá KM (VNĐ)
+          </label>
           <input
             type="number"
-            name="quantity"
-            required
+            name="promo_price"
             min="0"
-            value={formData.quantity}
+            value={formData.promo_price}
             onChange={handleChange}
-            className="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-            placeholder="10"
+            className="w-full px-3 py-2 border rounded-lg text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            placeholder="31990000"
           />
         </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="block text-xs font-semibold text-gray-700 mb-1">Danh mục *</label>
-          <select
-            name="category_id"
-            required
-            value={formData.category_id}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-          >
-            <option value="">-- Chọn danh mục --</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
-        </div>
 
         <div>
-          <label className="block text-xs font-semibold text-gray-700 mb-1">Thương hiệu *</label>
-          <select
-            name="brand_id"
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Tồn kho *
+          </label>
+          <input
+            type="number"
+            name="stock"
             required
-            value={formData.brand_id}
+            min="0"
+            value={formData.stock}
             onChange={handleChange}
-            className="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-          >
-            <option value="">-- Chọn thương hiệu --</option>
-            {brands.map((b) => (
-              <option key={b.id} value={b.id}>{b.name}</option>
-            ))}
-          </select>
+            className="w-full px-3 py-2 border rounded-lg text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            placeholder="15"
+          />
         </div>
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-gray-700 mb-1">Mô tả sản phẩm</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          URL Ảnh đại diện (Thumbnail)
+        </label>
+        <input
+          type="text"
+          name="thumbnail"
+          value={formData.thumbnail}
+          onChange={handleChange}
+          className="w-full px-3 py-2 border rounded-lg text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          placeholder="https://via.placeholder.com/400x400.png"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Mô tả sản phẩm
+        </label>
         <textarea
           name="description"
           rows="3"
           value={formData.description}
           onChange={handleChange}
-          className="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-          placeholder="Thông tin chi tiết về sản phẩm..."
+          className="w-full px-3 py-2 border rounded-lg text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          placeholder="Thông tin chi tiết sản phẩm..."
         ></textarea>
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-gray-700 mb-1">Trạng thái</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Trạng thái
+        </label>
         <select
           name="status"
           value={formData.status}
           onChange={handleChange}
-          className="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+          className="w-full px-3 py-2 border rounded-lg text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
         >
           <option value={1}>Mở bán (Hiển thị)</option>
-          <option value={0}>Tạm ẩn</option>
+          <option value={0}>Ẩn</option>
         </select>
       </div>
 
@@ -217,18 +306,24 @@ export default function ProductForm({ editingProduct, onSuccess, onCancel }) {
         <button
           type="submit"
           disabled={loading}
-          className={`flex-1 font-semibold py-2.5 rounded-xl text-white text-sm transition ${
-            editingProduct ? 'bg-amber-600 hover:bg-amber-700' : 'bg-indigo-600 hover:bg-indigo-700'
+          className={`flex-1 font-medium py-2 rounded-lg text-white transition ${
+            editingProduct
+              ? "bg-amber-600 hover:bg-amber-700"
+              : "bg-indigo-600 hover:bg-indigo-700"
           }`}
         >
-          {loading ? 'Đang lưu...' : editingProduct ? 'Lưu Thay Đổi' : 'Thêm Sản Phẩm'}
+          {loading
+            ? "Đang lưu..."
+            : editingProduct
+              ? "Lưu Thay Đổi"
+              : "Thêm Sản Phẩm"}
         </button>
 
         {editingProduct && (
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2.5 border rounded-xl text-sm font-medium hover:bg-gray-50"
+            className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-100"
           >
             Hủy
           </button>
