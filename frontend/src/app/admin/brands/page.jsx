@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 
 export default function AdminBrandPage() {
   const [brands, setBrands] = useState([]);
@@ -8,22 +8,29 @@ export default function AdminBrandPage() {
 
   // States cho Form Thêm/Sửa
   const [editingId, setEditingId] = useState(null);
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
   const [status, setStatus] = useState(1);
 
   // States cho Tìm kiếm, Lọc & Phân trang
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
-  const API_URL = 'http://127.0.0.1:8000/api';
+  const API_URL = "http://127.0.0.1:8000/api";
 
   // Tải danh sách thương hiệu từ Backend
   const loadBrands = async () => {
+    const token = localStorage.getItem('access_token');
     try {
-      const res = await fetch(`${API_URL}/brands`);
+      // Thay `${API_URL}/brands` thành `${API_URL}/admin/brands`
+      const res = await fetch(`${API_URL}/admin/brands`, {
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+      });
       const data = await res.json();
       setBrands(data.data || data);
     } catch (err) {
@@ -41,8 +48,8 @@ export default function AdminBrandPage() {
 
   // Reset Form về trạng thái ban đầu
   const resetForm = () => {
-    setName('');
-    setDescription('');
+    setName("");
+    setDescription("");
     setStatus(1);
     setEditingId(null);
   };
@@ -51,29 +58,29 @@ export default function AdminBrandPage() {
   const handleEditClick = (brand) => {
     setEditingId(brand.id);
     setName(brand.name);
-    setDescription(brand.description || '');
+    setDescription(brand.description || "");
     setStatus(brand.status ?? 1);
   };
 
   // Xử lý Gửi Form (Thêm mới HOẶC Cập nhật)
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem('access_token');
+    const token = localStorage.getItem("access_token");
     const isEdit = !!editingId;
 
     const url = isEdit
       ? `${API_URL}/admin/brands/${editingId}`
       : `${API_URL}/admin/brands`;
 
-    const method = isEdit ? 'PUT' : 'POST';
+    const method = isEdit ? "PUT" : "POST";
 
     try {
       const res = await fetch(url, {
         method,
         headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ name, description, status: Number(status) }),
       });
@@ -81,41 +88,45 @@ export default function AdminBrandPage() {
       const result = await res.json();
 
       if (res.ok) {
-        alert(isEdit ? 'Cập nhật thương hiệu thành công!' : 'Thêm thương hiệu thành công!');
+        alert(
+          isEdit
+            ? "Cập nhật thương hiệu thành công!"
+            : "Thêm thương hiệu thành công!",
+        );
         resetForm();
         loadBrands();
       } else {
-        alert(result.message || 'Thao tác thất bại!');
+        alert(result.message || "Thao tác thất bại!");
       }
     } catch (err) {
-      console.error('Lỗi gửi form thương hiệu:', err);
+      console.error("Lỗi gửi form thương hiệu:", err);
     }
   };
 
   // Xử lý Xóa Thương hiệu
   const handleDelete = async (id) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa thương hiệu này?')) return;
+    if (!confirm("Bạn có chắc chắn muốn xóa thương hiệu này?")) return;
 
-    const token = localStorage.getItem('access_token');
+    const token = localStorage.getItem("access_token");
     try {
       const res = await fetch(`${API_URL}/admin/brands/${id}`, {
-        method: 'DELETE',
+        method: "DELETE",
         headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
         },
       });
 
       if (res.ok) {
-        alert('Đã xóa thương hiệu thành công!');
+        alert("Đã xóa thương hiệu thành công!");
         if (editingId === id) resetForm();
         loadBrands();
       } else {
         const result = await res.json();
-        alert(result.message || 'Không thể xóa thương hiệu này!');
+        alert(result.message || "Không thể xóa thương hiệu này!");
       }
     } catch (err) {
-      console.error('Lỗi xóa thương hiệu:', err);
+      console.error("Lỗi xóa thương hiệu:", err);
     }
   };
 
@@ -123,10 +134,11 @@ export default function AdminBrandPage() {
   const filteredBrands = brands.filter((brand) => {
     const matchesSearch =
       brand.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (brand.description && brand.description.toLowerCase().includes(searchTerm.toLowerCase()));
+      (brand.description &&
+        brand.description.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const matchesStatus =
-      statusFilter === 'all' || String(brand.status) === String(statusFilter);
+      statusFilter === "all" || String(brand.status) === String(statusFilter);
 
     return matchesSearch && matchesStatus;
   });
@@ -134,18 +146,23 @@ export default function AdminBrandPage() {
   // LOGIC PHÂN TRANG
   const totalPages = Math.ceil(filteredBrands.length / itemsPerPage) || 1;
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedBrands = filteredBrands.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedBrands = filteredBrands.slice(
+    startIndex,
+    startIndex + itemsPerPage,
+  );
 
   return (
     <div>
-      <h2 className="text-2xl font-bold mb-6 text-gray-800">Quản Lý Thương Hiệu</h2>
+      <h2 className="text-2xl font-bold mb-6 text-gray-800">
+        Quản Lý Thương Hiệu
+      </h2>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* ================= FORM THÊM / SỬA ================= */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-fit">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-bold text-gray-800">
-              {editingId ? 'Cập Nhật Thương Hiệu' : 'Thêm Thương Hiệu Mới'}
+              {editingId ? "Cập Nhật Thương Hiệu" : "Thêm Thương Hiệu Mới"}
             </h3>
             {editingId && (
               <button
@@ -160,7 +177,9 @@ export default function AdminBrandPage() {
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Tên thương hiệu *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Tên thương hiệu *
+              </label>
               <input
                 type="text"
                 required
@@ -172,7 +191,9 @@ export default function AdminBrandPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Mô tả
+              </label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
@@ -183,7 +204,9 @@ export default function AdminBrandPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Trạng thái</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Trạng thái
+              </label>
               <select
                 value={status}
                 onChange={(e) => setStatus(Number(e.target.value))}
@@ -198,10 +221,12 @@ export default function AdminBrandPage() {
               <button
                 type="submit"
                 className={`flex-1 font-medium py-2 rounded-lg transition text-white ${
-                  editingId ? 'bg-amber-600 hover:bg-amber-700' : 'bg-indigo-600 hover:bg-indigo-700'
+                  editingId
+                    ? "bg-amber-600 hover:bg-amber-700"
+                    : "bg-indigo-600 hover:bg-indigo-700"
                 }`}
               >
-                {editingId ? 'Lưu Thay Đổi' : 'Thêm Thương Hiệu'}
+                {editingId ? "Lưu Thay Đổi" : "Thêm Thương Hiệu"}
               </button>
 
               {editingId && (
@@ -233,7 +258,9 @@ export default function AdminBrandPage() {
                 placeholder="Tìm kiếm thương hiệu..."
                 className="w-full pl-9 pr-4 py-2 border rounded-lg text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
-              <span className="absolute left-3 top-2.5 text-gray-400 text-sm">🔍</span>
+              <span className="absolute left-3 top-2.5 text-gray-400 text-sm">
+                🔍
+              </span>
             </div>
 
             {/* Lọc trạng thái */}
@@ -256,9 +283,13 @@ export default function AdminBrandPage() {
           {/* BẢNG DỮ LIỆU */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             {loading ? (
-              <div className="p-6 text-center text-gray-500">Đang tải danh sách thương hiệu...</div>
+              <div className="p-6 text-center text-gray-500">
+                Đang tải danh sách thương hiệu...
+              </div>
             ) : paginatedBrands.length === 0 ? (
-              <div className="p-6 text-center text-gray-500">Không tìm thấy thương hiệu phù hợp.</div>
+              <div className="p-6 text-center text-gray-500">
+                Không tìm thấy thương hiệu phù hợp.
+              </div>
             ) : (
               <table className="w-full text-left border-collapse">
                 <thead>
@@ -275,10 +306,12 @@ export default function AdminBrandPage() {
                     <tr
                       key={brand.id}
                       className={`hover:bg-gray-50 transition ${
-                        editingId === brand.id ? 'bg-amber-50/50' : ''
+                        editingId === brand.id ? "bg-amber-50/50" : ""
                       }`}
                     >
-                      <td className="p-4 font-bold text-gray-700">{brand.id}</td>
+                      <td className="p-4 font-bold text-gray-700">
+                        {brand.id}
+                      </td>
                       <td className="p-4 text-gray-800 font-medium">
                         <div>{brand.name}</div>
                         {brand.description && (
@@ -287,16 +320,18 @@ export default function AdminBrandPage() {
                           </div>
                         )}
                       </td>
-                      <td className="p-4 text-gray-500 text-xs">{brand.slug}</td>
+                      <td className="p-4 text-gray-500 text-xs">
+                        {brand.slug}
+                      </td>
                       <td className="p-4 text-center">
                         <span
                           className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${
                             brand.status == 1
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : 'bg-gray-100 text-gray-600'
+                              ? "bg-emerald-100 text-emerald-800"
+                              : "bg-gray-100 text-gray-600"
                           }`}
                         >
-                          {brand.status == 1 ? 'Hiển thị' : 'Ẩn'}
+                          {brand.status == 1 ? "Hiển thị" : "Ẩn"}
                         </span>
                       </td>
                       <td className="p-4 text-center">
@@ -325,7 +360,9 @@ export default function AdminBrandPage() {
             {totalPages > 1 && (
               <div className="p-4 border-t border-gray-100 flex items-center justify-between bg-gray-50/50">
                 <span className="text-xs text-gray-500">
-                  Hiển thị {startIndex + 1} - {Math.min(startIndex + itemsPerPage, filteredBrands.length)} / {filteredBrands.length} thương hiệu
+                  Hiển thị {startIndex + 1} -{" "}
+                  {Math.min(startIndex + itemsPerPage, filteredBrands.length)} /{" "}
+                  {filteredBrands.length} thương hiệu
                 </span>
 
                 <div className="flex items-center gap-1">
@@ -337,19 +374,21 @@ export default function AdminBrandPage() {
                     Trước
                   </button>
 
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`px-3 py-1 rounded-md text-xs font-medium transition ${
-                        currentPage === page
-                          ? 'bg-indigo-600 text-white'
-                          : 'bg-white border text-gray-700 hover:bg-gray-100'
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  ))}
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                    (page) => (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`px-3 py-1 rounded-md text-xs font-medium transition ${
+                          currentPage === page
+                            ? "bg-indigo-600 text-white"
+                            : "bg-white border text-gray-700 hover:bg-gray-100"
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    ),
+                  )}
 
                   <button
                     disabled={currentPage === totalPages}
