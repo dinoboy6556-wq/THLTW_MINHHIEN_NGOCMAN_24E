@@ -1,6 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import productService from "@/services/productService";
+import categoryService from "@/services/categoryService";
+import brandService from "@/services/brandService";
+import { getErrorMessage } from "@/lib/axios";
 
 export default function ProductForm({ editingProduct, onSuccess, onCancel }) {
   const [formData, setFormData] = useState({
@@ -19,55 +23,65 @@ export default function ProductForm({ editingProduct, onSuccess, onCancel }) {
   const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const API_URL = "http://127.0.0.1:8000/api";
-
-  // Hàm hỗ trợ bóc tách Mảng an toàn từ dữ liệu Laravel trả về
-  const extractArray = (data) => {
-    if (Array.isArray(data)) return data;
-    if (Array.isArray(data?.data)) return data.data;
-    if (Array.isArray(data?.categories)) return data.categories;
-    if (Array.isArray(data?.brands)) return data.brands;
-    if (data?.data && Array.isArray(data.data.data)) return data.data.data;
+  // Hàm bóc tách Mảng an toàn
+  const extractArray = (resData) => {
+    if (!resData) return [];
+    if (Array.isArray(resData)) return resData;
+    if (Array.isArray(resData.data)) return resData.data;
+    if (resData.data && Array.isArray(resData.data.data))
+      return resData.data.data;
     return [];
   };
 
   // Tải danh sách Danh mục và Thương hiệu cho Dropdown
+  const fetchDropdownData = useCallback(async () => {
+    try {
+      const [resCate, resBrand] = await Promise.all([
+        categoryService.getAll(),
+        brandService.getAll(),
+      ]);
+
+      setCategories(extractArray(resCate.data));
+      setBrands(extractArray(resBrand.data));
+    } catch (err) {
+      console.error("Lỗi tải dropdown:", getErrorMessage(err));
+      setCategories([]);
+      setBrands([]);
+    }
+  }, []);
+
+  // 1. Tải danh sách Danh mục & Thương hiệu (Đã sửa lỗi ESLint)
   useEffect(() => {
-    queueMicrotask(() => {
-      const fetchDropdownData = async () => {
-        const token = localStorage.getItem("access_token");
-        const headers = {
-          Accept: "application/json",
-          Authorization: `Bearer ${token}`,
-        };
+    let isMounted = true;
 
-        try {
-          const [resCate, resBrand] = await Promise.all([
-            fetch(`${API_URL}/admin/categories`, { headers }).catch(() =>
-              fetch(`${API_URL}/categories`),
-            ),
-            fetch(`${API_URL}/admin/brands`, { headers }).catch(() =>
-              fetch(`${API_URL}/brands`),
-            ),
-          ]);
+    const loadDropdowns = async () => {
+      try {
+        const [resCate, resBrand] = await Promise.all([
+          categoryService.getAll(),
+          brandService.getAll(),
+        ]);
 
-          const dataCate = await resCate.json();
-          const dataBrand = await resBrand.json();
-
-          setCategories(extractArray(dataCate));
-          setBrands(extractArray(dataBrand));
-        } catch (err) {
-          console.error("Lỗi tải dữ liệu dropdown:", err);
+        if (isMounted) {
+          setCategories(extractArray(resCate.data));
+          setBrands(extractArray(resBrand.data));
+        }
+      } catch (err) {
+        if (isMounted) {
+          console.error("Lỗi tải dropdown:", getErrorMessage(err));
           setCategories([]);
           setBrands([]);
         }
-      };
+      }
+    };
 
-      fetchDropdownData();
-    });
+    loadDropdowns();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  // Điền dữ liệu cũ vào Form khi bấm Sửa
+  // 2. Điền dữ liệu cũ vào Form khi bấm Sửa (Dùng queueMicrotask để tránh setState đồng bộ)
   useEffect(() => {
     if (editingProduct) {
       queueMicrotask(() => {
@@ -80,7 +94,10 @@ export default function ProductForm({ editingProduct, onSuccess, onCancel }) {
           stock: editingProduct.stock || "",
           thumbnail: editingProduct.thumbnail || "",
           description: editingProduct.description || "",
-          status: editingProduct.status ?? 1,
+          status:
+            editingProduct.status !== undefined
+              ? Number(editingProduct.status)
+              : 1,
         });
       });
     }
@@ -94,54 +111,33 @@ export default function ProductForm({ editingProduct, onSuccess, onCancel }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    const token = localStorage.getItem("access_token");
-    const isEdit = !!editingProduct;
 
-    const url = isEdit
-      ? `${API_URL}/admin/products/${editingProduct.id}`
-      : `${API_URL}/admin/products`;
+    const payload = {
+      ...formData,
+      cate_id: Number(formData.cate_id),
+      brand_id: Number(formData.brand_id),
+      price: Number(formData.price),
+      promo_price: formData.promo_price ? Number(formData.promo_price) : null,
+      stock: Number(formData.stock),
+      status: Number(formData.status),
+    };
 
     try {
-      const res = await fetch(url, {
-        method: isEdit ? "PUT" : "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          ...formData,
-          cate_id: Number(formData.cate_id),
-          brand_id: Number(formData.brand_id),
-          price: Number(formData.price),
-          promo_price: formData.promo_price
-            ? Number(formData.promo_price)
-            : null,
-          stock: Number(formData.stock),
-          status: Number(formData.status),
-        }),
-      });
-
-      const result = await res.json();
-
-      if (res.ok) {
-        alert(
-          isEdit
-            ? "Cập nhật sản phẩm thành công!"
-            : "Thêm sản phẩm thành công!",
-        );
-        onSuccess();
+      if (editingProduct) {
+        await productService.update(editingProduct.id, payload);
+        alert("Cập nhật sản phẩm thành công!");
       } else {
-        alert(result.message || "Thao tác thất bại!");
+        await productService.create(payload);
+        alert("Thêm sản phẩm mới thành công!");
       }
+      onSuccess();
     } catch (err) {
-      console.error("Lỗi lưu sản phẩm:", err);
+      alert(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
   };
 
-  // Đảm bảo luôn lấy mảng an toàn trước khi render
   const categoryList = Array.isArray(categories) ? categories : [];
   const brandList = Array.isArray(brands) ? brands : [];
 
@@ -295,7 +291,7 @@ export default function ProductForm({ editingProduct, onSuccess, onCancel }) {
           value={formData.description}
           onChange={handleChange}
           className="w-full px-3 py-2 border rounded-lg text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          placeholder="Thông tin chi tiết sản phẩm..."
+          placeholder="Thông tin chi tiết..."
         ></textarea>
       </div>
 
