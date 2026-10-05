@@ -21,6 +21,16 @@ export default function ProductForm({ editingProduct, onSuccess, onCancel }) {
 
   const API_URL = "http://127.0.0.1:8000/api";
 
+  // Hàm hỗ trợ bóc tách Mảng an toàn từ dữ liệu Laravel trả về
+  const extractArray = (data) => {
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.data)) return data.data;
+    if (Array.isArray(data?.categories)) return data.categories;
+    if (Array.isArray(data?.brands)) return data.brands;
+    if (data?.data && Array.isArray(data.data.data)) return data.data.data;
+    return [];
+  };
+
   // Tải danh sách Danh mục và Thương hiệu cho Dropdown
   useEffect(() => {
     queueMicrotask(() => {
@@ -44,14 +54,12 @@ export default function ProductForm({ editingProduct, onSuccess, onCancel }) {
           const dataCate = await resCate.json();
           const dataBrand = await resBrand.json();
 
-          setCategories(
-            Array.isArray(dataCate) ? dataCate : dataCate.data || [],
-          );
-          setBrands(
-            Array.isArray(dataBrand) ? dataBrand : dataBrand.data || [],
-          );
+          setCategories(extractArray(dataCate));
+          setBrands(extractArray(dataBrand));
         } catch (err) {
           console.error("Lỗi tải dữ liệu dropdown:", err);
+          setCategories([]);
+          setBrands([]);
         }
       };
 
@@ -133,6 +141,10 @@ export default function ProductForm({ editingProduct, onSuccess, onCancel }) {
     }
   };
 
+  // Đảm bảo luôn lấy mảng an toàn trước khi render
+  const categoryList = Array.isArray(categories) ? categories : [];
+  const brandList = Array.isArray(brands) ? brands : [];
+
   return (
     <form
       onSubmit={handleSubmit}
@@ -181,7 +193,7 @@ export default function ProductForm({ editingProduct, onSuccess, onCancel }) {
             className="w-full px-3 py-2 border rounded-lg text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="">-- Chọn danh mục --</option>
-            {categories.map((c) => (
+            {categoryList.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
               </option>
@@ -201,7 +213,7 @@ export default function ProductForm({ editingProduct, onSuccess, onCancel }) {
             className="w-full px-3 py-2 border rounded-lg text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="">-- Chọn thương hiệu --</option>
-            {brands.map((b) => (
+            {brandList.map((b) => (
               <option key={b.id} value={b.id}>
                 {b.name}
               </option>
