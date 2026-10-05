@@ -1,76 +1,63 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import brandService from "@/services/brandService";
+import { getErrorMessage } from "@/lib/axios";
 
 export default function AdminBrandPage() {
   const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState("");
 
-  // States cho Form Thêm/Sửa
+  // Form States (Thêm / Sửa tại chỗ)
   const [editingId, setEditingId] = useState(null);
   const [name, setName] = useState("");
   const [logo, setLogo] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState(1);
 
-  // States cho Tìm kiếm, Lọc & Phân trang
+  // States Tìm kiếm, Lọc & Phân trang
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
-  const API_URL = "http://127.0.0.1:8000/api";
+  // Hàm bóc tách mảng an toàn theo mọi kiểu JSON Laravel
+  const extractArray = (resData) => {
+    if (!resData) return [];
+    if (Array.isArray(resData)) return resData;
+    if (Array.isArray(resData.data)) return resData.data;
+    if (Array.isArray(resData.brands)) return resData.brands;
+    if (resData.data && Array.isArray(resData.data.data))
+      return resData.data.data;
+    return [];
+  };
 
-  // Tải danh sách thương hiệu (Tự động fallback & bóc tách mảng linh hoạt)
-  const loadBrands = async () => {
-    const token = localStorage.getItem("access_token");
+  // 1. TẢI DANH SÁCH BẰNG AXIOS SERVICE
+  // 1. TẢI DANH SÁCH THƯƠNG HIỆU
+  const loadBrands = useCallback(async () => {
+    setLoading(true);
+    setApiError("");
     try {
-      // 1. Thử gọi API Admin kèm Token
-      let res = await fetch(`${API_URL}/admin/brands`, {
-        headers: {
-          Accept: "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      // 2. Nếu API Admin lỗi/không tồn tại (404/401), fallback về API Public
-      if (!res.ok) {
-        console.warn(
-          "API Admin Thương hiệu bị lỗi, tự động chuyển về API Public...",
-        );
-        res = await fetch(`${API_URL}/brands`);
-      }
-
-      const data = await res.json();
-      console.log("Dữ liệu Thương hiệu nhận từ Backend:", data);
-
-      // 3. Bóc tách dữ liệu an toàn theo mọi cấu trúc Laravel
-      if (Array.isArray(data)) {
-        setBrands(data);
-      } else if (Array.isArray(data.data)) {
-        setBrands(data.data);
-      } else if (Array.isArray(data.brands)) {
-        setBrands(data.brands);
-      } else if (data.data && Array.isArray(data.data.data)) {
-        setBrands(data.data.data);
-      } else {
-        setBrands([]);
-      }
+      const res = await brandService.getAll();
+      const extractedList = extractArray(res.data);
+      setBrands(extractedList);
     } catch (err) {
-      console.error("Lỗi lấy danh sách thương hiệu:", err);
+      const errorMsg = getErrorMessage(err);
+      console.error("Lỗi API Thương hiệu:", errorMsg);
+      setApiError(errorMsg);
       setBrands([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     queueMicrotask(() => {
       loadBrands();
     });
-  }, []);
+  }, [loadBrands]);
 
-  // Reset Form về trạng thái ban đầu
   const resetForm = () => {
     setName("");
     setLogo("");
@@ -79,104 +66,68 @@ export default function AdminBrandPage() {
     setEditingId(null);
   };
 
-  // Chọn thương hiệu để Sửa
   const handleEditClick = (brand) => {
     setEditingId(brand.id);
     setName(brand.name || "");
     setLogo(brand.logo || "");
     setDescription(brand.description || "");
-    setStatus(Number(brand.status ?? 1));
+    setStatus(brand.status !== undefined ? Number(brand.status) : 1);
   };
 
-  // Xử lý Gửi Form (Thêm mới HOẶC Cập nhật)
+  // 2. THÊM / SỬA BẰNG AXIOS SERVICE
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem("access_token");
-    const isEdit = !!editingId;
-
-    const url = isEdit
-      ? `${API_URL}/admin/brands/${editingId}`
-      : `${API_URL}/admin/brands`;
-
-    const method = isEdit ? "PUT" : "POST";
+    const payload = {
+      name,
+      logo,
+      description,
+      status: Number(status),
+    };
 
     try {
-      const res = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          name,
-          logo,
-          description,
-          status: Number(status),
-        }),
-      });
-
-      const result = await res.json();
-
-      if (res.ok) {
-        alert(
-          isEdit
-            ? "Cập nhật thương hiệu thành công!"
-            : "Thêm thương hiệu thành công!",
-        );
-        resetForm();
-        loadBrands();
+      if (editingId) {
+        await brandService.update(editingId, payload);
+        alert("Cập nhật thương hiệu thành công!");
       } else {
-        alert(result.message || "Thao tác thất bại!");
+        await brandService.create(payload);
+        alert("Thêm thương hiệu mới thành công!");
       }
+      resetForm();
+      loadBrands();
     } catch (err) {
-      console.error("Lỗi gửi form thương hiệu:", err);
+      alert(getErrorMessage(err));
     }
   };
 
-  // Xử lý Xóa Thương hiệu
+  // 3. XÓA BẰNG AXIOS SERVICE
   const handleDelete = async (id) => {
     if (!confirm("Bạn có chắc chắn muốn xóa thương hiệu này?")) return;
 
-    const token = localStorage.getItem("access_token");
     try {
-      const res = await fetch(`${API_URL}/admin/brands/${id}`, {
-        method: "DELETE",
-        headers: {
-          Accept: "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (res.ok) {
-        alert("Đã xóa thương hiệu thành công!");
-        if (editingId === id) resetForm();
-        loadBrands();
-      } else {
-        const result = await res.json();
-        alert(result.message || "Không thể xóa thương hiệu này!");
-      }
+      await brandService.remove(id);
+      alert("Đã xóa thương hiệu thành công!");
+      if (editingId === id) resetForm();
+      loadBrands();
     } catch (err) {
-      console.error("Lỗi xóa thương hiệu:", err);
+      alert(getErrorMessage(err));
     }
   };
 
-  // LOGIC TÌM KIẾM & LỌC
+  // 4. BỘ LỌC TÌM KIẾM VÀ PHÂN TRANG
   const brandList = Array.isArray(brands) ? brands : [];
-
   const filteredBrands = brandList.filter((brand) => {
     const matchesSearch =
       brand.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (brand.description &&
         brand.description.toLowerCase().includes(searchTerm.toLowerCase()));
 
+    const brandStatus = brand.status !== undefined ? String(brand.status) : "1";
     const matchesStatus =
-      statusFilter === "all" || String(brand.status) === String(statusFilter);
+      statusFilter === "all" || brandStatus === String(statusFilter);
 
     return matchesSearch && matchesStatus;
   });
 
-  // LOGIC PHÂN TRANG
   const totalPages = Math.ceil(filteredBrands.length / itemsPerPage) || 1;
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedBrands = filteredBrands.slice(
@@ -190,8 +141,22 @@ export default function AdminBrandPage() {
         Quản Lý Thương Hiệu
       </h2>
 
+      {apiError && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm flex justify-between items-center">
+          <span>
+            ⚠️ <b>Lỗi kết nối API:</b> {apiError}
+          </span>
+          <button
+            onClick={loadBrands}
+            className="px-3 py-1 bg-red-600 text-white rounded-lg text-xs font-semibold"
+          >
+            Thử lại
+          </button>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* ================= FORM THÊM / SỬA ================= */}
+        {/* ================= FORM THÊM / SỬA TẠI CHỖ ================= */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-fit">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-bold text-gray-800">
@@ -201,7 +166,7 @@ export default function AdminBrandPage() {
               <button
                 type="button"
                 onClick={resetForm}
-                className="text-xs text-gray-500 hover:text-gray-700 underline"
+                className="text-xs text-gray-500 hover:underline"
               >
                 Hủy sửa
               </button>
@@ -274,23 +239,12 @@ export default function AdminBrandPage() {
               >
                 {editingId ? "Lưu Thay Đổi" : "Thêm Thương Hiệu"}
               </button>
-
-              {editingId && (
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="px-4 py-2 border border-gray-300 hover:bg-gray-100 rounded-lg text-gray-700 text-sm font-medium transition"
-                >
-                  Hủy
-                </button>
-              )}
             </div>
           </form>
         </div>
 
-        {/* ================= BẢNG DANH SÁCH & THANH CÔNG CỤ ================= */}
+        {/* ================= BẢNG DANH SÁCH + TÌM KIẾM + PHÂN TRANG ================= */}
         <div className="lg:col-span-2 flex flex-col gap-4">
-          {/* THANH TÌM KIẾM & LỌC */}
           <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-4 justify-between">
             <div className="relative flex-1">
               <input
@@ -324,11 +278,10 @@ export default function AdminBrandPage() {
             </div>
           </div>
 
-          {/* BẢNG DỮ LIỆU */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             {loading ? (
               <div className="p-6 text-center text-gray-500">
-                Đang tải danh sách thương hiệu...
+                Đang tải thương hiệu...
               </div>
             ) : paginatedBrands.length === 0 ? (
               <div className="p-6 text-center text-gray-500">
@@ -349,6 +302,7 @@ export default function AdminBrandPage() {
                 <tbody className="divide-y text-sm">
                   {paginatedBrands.map((brand) => {
                     const isVisible =
+                      brand.status === undefined ||
                       brand.status == 1 ||
                       brand.status === true ||
                       brand.status === "1";
@@ -426,7 +380,7 @@ export default function AdminBrandPage() {
               </table>
             )}
 
-            {/* THANH PHÂN TRANG */}
+            {/* PHÂN TRANG */}
             {totalPages > 1 && (
               <div className="p-4 border-t border-gray-100 flex items-center justify-between bg-gray-50/50">
                 <span className="text-xs text-gray-500">

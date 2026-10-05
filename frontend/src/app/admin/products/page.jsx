@@ -1,86 +1,67 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import productService from "@/services/productService";
 import ProductForm from "@/components/admin/ProductForm";
+import { getErrorMessage } from "@/lib/axios";
 
 export default function AdminProductPage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState("");
   const [editingProduct, setEditingProduct] = useState(null);
   const [showForm, setShowForm] = useState(false);
 
-  // States Tìm kiếm, Lọc Trạng thái & Phân trang
+  // States Tìm kiếm, Lọc & Phân trang
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
-  const API_URL = "http://127.0.0.1:8000/api";
+  // Hàm bóc tách Mảng an toàn
+  const extractArray = (resData) => {
+    if (!resData) return [];
+    if (Array.isArray(resData)) return resData;
+    if (Array.isArray(resData.data)) return resData.data;
+    if (Array.isArray(resData.products)) return resData.products;
+    if (resData.data && Array.isArray(resData.data.data))
+      return resData.data.data;
+    return [];
+  };
 
-  // Tải danh sách sản phẩm từ Admin API
-  const loadProducts = async () => {
-    const token = localStorage.getItem("access_token");
+  // 1. TẢI DANH SÁCH SẢN PHẨM
+  const loadProducts = useCallback(async () => {
+    setLoading(true);
+    setApiError("");
     try {
-      let res = await fetch(`${API_URL}/admin/products`, {
-        headers: {
-          Accept: "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!res.ok) {
-        res = await fetch(`${API_URL}/products`);
-      }
-
-      const data = await res.json();
-
-      if (Array.isArray(data)) {
-        setProducts(data);
-      } else if (Array.isArray(data.data)) {
-        setProducts(data.data);
-      } else if (Array.isArray(data.products)) {
-        setProducts(data.products);
-      } else if (data.data && Array.isArray(data.data.data)) {
-        setProducts(data.data.data);
-      } else {
-        setProducts([]);
-      }
+      const res = await productService.getAll();
+      const extractedList = extractArray(res.data);
+      setProducts(extractedList);
     } catch (err) {
-      console.error("Lỗi lấy danh sách sản phẩm:", err);
+      const errorMsg = getErrorMessage(err);
+      console.error("Lỗi API Sản phẩm:", errorMsg);
+      setApiError(errorMsg);
       setProducts([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     queueMicrotask(() => {
       loadProducts();
     });
-  }, []);
+  }, [loadProducts]);
 
   const handleDelete = async (id) => {
     if (!confirm("Bạn có chắc chắn muốn xóa sản phẩm này?")) return;
 
-    const token = localStorage.getItem("access_token");
     try {
-      const res = await fetch(`${API_URL}/admin/products/${id}`, {
-        method: "DELETE",
-        headers: {
-          Accept: "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (res.ok) {
-        alert("Đã xóa sản phẩm thành công!");
-        loadProducts();
-      } else {
-        const result = await res.json();
-        alert(result.message || "Không thể xóa!");
-      }
+      await productService.remove(id);
+      alert("Đã xóa sản phẩm thành công!");
+      loadProducts();
     } catch (err) {
-      console.error("Lỗi xóa sản phẩm:", err);
+      alert(getErrorMessage(err));
     }
   };
 
@@ -95,19 +76,21 @@ export default function AdminProductPage() {
     loadProducts();
   };
 
-  // LOGIC LỌC SẢN PHẨM
+  // 2. LỌC VÀ PHÂN TRANG
   const productList = Array.isArray(products) ? products : [];
 
   const filteredProducts = productList.filter((prod) => {
     const matchesSearch = prod.name
       ?.toLowerCase()
       .includes(searchTerm.toLowerCase());
+
+    const prodStatus = prod.status !== undefined ? String(prod.status) : "1";
     const matchesStatus =
-      statusFilter === "all" || String(prod.status) === String(statusFilter);
+      statusFilter === "all" || prodStatus === String(statusFilter);
+
     return matchesSearch && matchesStatus;
   });
 
-  // LOGIC PHÂN TRANG
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage) || 1;
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedProducts = filteredProducts.slice(
@@ -135,6 +118,20 @@ export default function AdminProductPage() {
           {showForm ? "Đóng Form" : "+ Thêm Sản Phẩm Mới"}
         </button>
       </div>
+
+      {apiError && (
+        <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm flex justify-between items-center">
+          <span>
+            ⚠️ <b>Lỗi kết nối API:</b> {apiError}
+          </span>
+          <button
+            onClick={loadProducts}
+            className="px-3 py-1 bg-red-600 text-white rounded-lg text-xs font-semibold"
+          >
+            Thử lại
+          </button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* FORM THÊM / SỬA */}
@@ -188,7 +185,7 @@ export default function AdminProductPage() {
               </div>
             </div>
 
-            {/* Bảng dữ liệu */}
+            {/* Bảng Dữ Liệu */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
               {loading ? (
                 <div className="p-6 text-center text-gray-500">
@@ -214,6 +211,7 @@ export default function AdminProductPage() {
                   <tbody className="divide-y text-sm">
                     {paginatedProducts.map((prod) => {
                       const isVisible =
+                        prod.status === undefined ||
                         prod.status == 1 ||
                         prod.status === true ||
                         prod.status === "1";
@@ -310,7 +308,7 @@ export default function AdminProductPage() {
                 </table>
               )}
 
-              {/* THANH PHÂN TRANG */}
+              {/* PHÂN TRANG */}
               {totalPages > 1 && (
                 <div className="p-4 border-t border-gray-100 flex items-center justify-between bg-gray-50/50">
                   <span className="text-xs text-gray-500">
@@ -349,7 +347,7 @@ export default function AdminProductPage() {
 
                     <button
                       disabled={currentPage === totalPages}
-                      onClick={() => setCurrentPage((prev) => prev + 1)}
+                      onClick={() => setCurrentPage((prev) => prev - 1 + 2)}
                       className="px-3 py-1 border rounded-md text-xs font-medium text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 bg-white"
                     >
                       Sau
