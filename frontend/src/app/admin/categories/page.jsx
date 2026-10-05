@@ -166,7 +166,7 @@ export default function AdminCategoryPage() {
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                className="w-full px-3 py-2 border rounded-lg text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 placeholder="VD: Màn Hình"
               />
             </div>
@@ -176,7 +176,7 @@ export default function AdminCategoryPage() {
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                className="w-full px-3 py-2 border rounded-lg text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 rows="3"
                 placeholder="Mô tả danh mục..."
               ></textarea>
@@ -187,7 +187,7 @@ export default function AdminCategoryPage() {
               <select
                 value={status}
                 onChange={(e) => setStatus(Number(e.target.value))}
-                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                className="w-full px-3 py-2 border rounded-lg text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value={1}>Hiển thị</option>
                 <option value={0}>Ẩn</option>
@@ -228,10 +228,10 @@ export default function AdminCategoryPage() {
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
-                  setCurrentPage(1); // Reset trang khi nhập tìm kiếm
+                  setCurrentPage(1);
                 }}
                 placeholder="Tìm kiếm danh mục..."
-                className="w-full pl-9 pr-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full pl-9 pr-4 py-2 border rounded-lg text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
               <span className="absolute left-3 top-2.5 text-gray-400 text-sm">🔍</span>
             </div>
@@ -242,9 +242,9 @@ export default function AdminCategoryPage() {
                 value={statusFilter}
                 onChange={(e) => {
                   setStatusFilter(e.target.value);
-                  setCurrentPage(1); // Reset trang khi lọc trạng thái
+                  setCurrentPage(1);
                 }}
-                className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 border rounded-lg text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="all">Tất cả trạng thái</option>
                 <option value="1">Đang hiển thị</option>
@@ -332,7 +332,7 @@ export default function AdminCategoryPage() {
                   <button
                     disabled={currentPage === 1}
                     onClick={() => setCurrentPage((prev) => prev - 1)}
-                    className="px-3 py-1 border rounded-md text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 bg-white"
+                    className="px-3 py-1 border rounded-md text-xs font-medium text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 bg-white"
                   >
                     Trước
                   </button>
@@ -354,7 +354,7 @@ export default function AdminCategoryPage() {
                   <button
                     disabled={currentPage === totalPages}
                     onClick={() => setCurrentPage((prev) => prev + 1)}
-                    className="px-3 py-1 border rounded-md text-xs font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 bg-white"
+                    className="px-3 py-1 border rounded-md text-xs font-medium text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 bg-white"
                   >
                     Sau
                   </button>
