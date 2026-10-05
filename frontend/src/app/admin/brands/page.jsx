@@ -1,14 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 
 export default function AdminBrandPage() {
   const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // States cho Form Thêm/Sửa
+  // States cho Form Thêm/Sửa (Bổ sung thêm logo)
   const [editingId, setEditingId] = useState(null);
   const [name, setName] = useState("");
+  const [logo, setLogo] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState(1);
 
@@ -20,14 +22,31 @@ export default function AdminBrandPage() {
 
   const API_URL = "http://127.0.0.1:8000/api";
 
-  // Tải danh sách thương hiệu từ Backend
+  // Tải danh sách thương hiệu ADMIN (Kèm Bearer Token để lấy cả thương hiệu bị Ẩn)
   const loadBrands = async () => {
+    const token = localStorage.getItem("access_token");
     try {
-      const res = await fetch(`${API_URL}/brands`);
+      const res = await fetch(`${API_URL}/admin/brands`, {
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
       const data = await res.json();
-      setBrands(data.data || data);
+
+      // Kiểm tra an toàn ép kiểu Mảng (Array)
+      if (Array.isArray(data)) {
+        setBrands(data);
+      } else if (Array.isArray(data.data)) {
+        setBrands(data.data);
+      } else if (Array.isArray(data.brands)) {
+        setBrands(data.brands);
+      } else {
+        setBrands([]);
+      }
     } catch (err) {
-      console.error("Lỗi lấy danh sách thương hiệu:", err);
+      console.error("Lỗi lấy danh sách thương hiệu Admin:", err);
+      setBrands([]);
     } finally {
       setLoading(false);
     }
@@ -42,6 +61,7 @@ export default function AdminBrandPage() {
   // Reset Form về trạng thái ban đầu
   const resetForm = () => {
     setName("");
+    setLogo("");
     setDescription("");
     setStatus(1);
     setEditingId(null);
@@ -50,9 +70,10 @@ export default function AdminBrandPage() {
   // Chọn thương hiệu để Sửa
   const handleEditClick = (brand) => {
     setEditingId(brand.id);
-    setName(brand.name);
+    setName(brand.name || "");
+    setLogo(brand.logo || "");
     setDescription(brand.description || "");
-    setStatus(brand.status ?? 1);
+    setStatus(Number(brand.status ?? 1));
   };
 
   // Xử lý Gửi Form (Thêm mới HOẶC Cập nhật)
@@ -75,7 +96,12 @@ export default function AdminBrandPage() {
           Accept: "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ name, description, status: Number(status) }),
+        body: JSON.stringify({
+          name,
+          logo,
+          description,
+          status: Number(status),
+        }),
       });
 
       const result = await res.json();
@@ -124,9 +150,11 @@ export default function AdminBrandPage() {
   };
 
   // LOGIC TÌM KIẾM & LỌC
-  const filteredBrands = brands.filter((brand) => {
+  const brandList = Array.isArray(brands) ? brands : [];
+
+  const filteredBrands = brandList.filter((brand) => {
     const matchesSearch =
-      brand.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      brand.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (brand.description &&
         brand.description.toLowerCase().includes(searchTerm.toLowerCase()));
 
@@ -179,7 +207,20 @@ export default function AdminBrandPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full px-3 py-2 border rounded-lg text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="VD: ASUS, Apple, Dell"
+                placeholder="VD: Apple, Samsung, ASUS"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Đường dẫn Logo (URL)
+              </label>
+              <input
+                type="text"
+                value={logo}
+                onChange={(e) => setLogo(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="https://via.placeholder.com/150x50.png"
               />
             </div>
 
@@ -239,7 +280,6 @@ export default function AdminBrandPage() {
         <div className="lg:col-span-2 flex flex-col gap-4">
           {/* THANH TÌM KIẾM & LỌC */}
           <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col sm:flex-row gap-4 justify-between">
-            {/* Ô tìm kiếm */}
             <div className="relative flex-1">
               <input
                 type="text"
@@ -256,7 +296,6 @@ export default function AdminBrandPage() {
               </span>
             </div>
 
-            {/* Lọc trạng thái */}
             <div className="w-full sm:w-48">
               <select
                 value={statusFilter}
@@ -288,6 +327,7 @@ export default function AdminBrandPage() {
                 <thead>
                   <tr className="bg-gray-50 text-gray-600 text-sm border-b">
                     <th className="p-4">ID</th>
+                    <th className="p-4">Logo</th>
                     <th className="p-4">Tên thương hiệu</th>
                     <th className="p-4">Slug</th>
                     <th className="p-4 text-center">Trạng thái</th>
@@ -295,56 +335,80 @@ export default function AdminBrandPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y text-sm">
-                  {paginatedBrands.map((brand) => (
-                    <tr
-                      key={brand.id}
-                      className={`hover:bg-gray-50 transition ${
-                        editingId === brand.id ? "bg-amber-50/50" : ""
-                      }`}
-                    >
-                      <td className="p-4 font-bold text-gray-700">
-                        {brand.id}
-                      </td>
-                      <td className="p-4 text-gray-800 font-medium">
-                        <div>{brand.name}</div>
-                        {brand.description && (
-                          <div className="text-xs text-gray-400 font-normal line-clamp-1">
-                            {brand.description}
+                  {paginatedBrands.map((brand) => {
+                    const isVisible =
+                      brand.status == 1 ||
+                      brand.status === true ||
+                      brand.status === "1";
+
+                    return (
+                      <tr
+                        key={brand.id}
+                        className={`hover:bg-gray-50 transition ${
+                          editingId === brand.id ? "bg-amber-50/50" : ""
+                        }`}
+                      >
+                        <td className="p-4 font-bold text-gray-700">
+                          {brand.id}
+                        </td>
+                        <td className="p-4">
+                          {brand.logo ? (
+                            <Image
+                              src={brand.logo}
+                              alt={brand.name}
+                              className="h-8 w-16 object-contain rounded border border-gray-100 bg-white"
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.style.display = "none";
+                              }}
+                            />
+                          ) : (
+                            <span className="text-xs text-gray-400 italic">
+                              Chưa có
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-4 text-gray-800 font-medium">
+                          <div>{brand.name}</div>
+                          {brand.description && (
+                            <div className="text-xs text-gray-400 font-normal line-clamp-1">
+                              {brand.description}
+                            </div>
+                          )}
+                        </td>
+                        <td className="p-4 text-gray-500 text-xs">
+                          {brand.slug}
+                        </td>
+                        <td className="p-4 text-center">
+                          <span
+                            className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${
+                              isVisible
+                                ? "bg-emerald-100 text-emerald-800"
+                                : "bg-gray-100 text-gray-600"
+                            }`}
+                          >
+                            {isVisible ? "Hiển thị" : "Ẩn"}
+                          </span>
+                        </td>
+                        <td className="p-4 text-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <button
+                              onClick={() => handleEditClick(brand)}
+                              className="bg-amber-50 text-amber-600 hover:bg-amber-100 px-3 py-1 rounded-md text-xs font-semibold transition"
+                            >
+                              Sửa
+                            </button>
+                            <button
+                              onClick={() => handleDelete(brand.id)}
+                              className="bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1 rounded-md text-xs font-semibold transition"
+                            >
+                              Xóa
+                            </button>
                           </div>
-                        )}
-                      </td>
-                      <td className="p-4 text-gray-500 text-xs">
-                        {brand.slug}
-                      </td>
-                      <td className="p-4 text-center">
-                        <span
-                          className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${
-                            brand.status == 1
-                              ? "bg-emerald-100 text-emerald-800"
-                              : "bg-gray-100 text-gray-600"
-                          }`}
-                        >
-                          {brand.status == 1 ? "Hiển thị" : "Ẩn"}
-                        </span>
-                      </td>
-                      <td className="p-4 text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => handleEditClick(brand)}
-                            className="bg-amber-50 text-amber-600 hover:bg-amber-100 px-3 py-1 rounded-md text-xs font-semibold transition"
-                          >
-                            Sửa
-                          </button>
-                          <button
-                            onClick={() => handleDelete(brand.id)}
-                            className="bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1 rounded-md text-xs font-semibold transition"
-                          >
-                            Xóa
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             )}
