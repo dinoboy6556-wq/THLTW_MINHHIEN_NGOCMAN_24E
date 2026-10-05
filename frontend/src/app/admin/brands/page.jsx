@@ -1,13 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Image from "next/image";
 
 export default function AdminBrandPage() {
   const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // States cho Form Thêm/Sửa (Bổ sung thêm logo)
+  // States cho Form Thêm/Sửa
   const [editingId, setEditingId] = useState(null);
   const [name, setName] = useState("");
   const [logo, setLogo] = useState("");
@@ -22,30 +21,43 @@ export default function AdminBrandPage() {
 
   const API_URL = "http://127.0.0.1:8000/api";
 
-  // Tải danh sách thương hiệu ADMIN (Kèm Bearer Token để lấy cả thương hiệu bị Ẩn)
+  // Tải danh sách thương hiệu (Tự động fallback & bóc tách mảng linh hoạt)
   const loadBrands = async () => {
     const token = localStorage.getItem("access_token");
     try {
-      const res = await fetch(`${API_URL}/admin/brands`, {
+      // 1. Thử gọi API Admin kèm Token
+      let res = await fetch(`${API_URL}/admin/brands`, {
         headers: {
           Accept: "application/json",
           Authorization: `Bearer ${token}`,
         },
       });
-      const data = await res.json();
 
-      // Kiểm tra an toàn ép kiểu Mảng (Array)
+      // 2. Nếu API Admin lỗi/không tồn tại (404/401), fallback về API Public
+      if (!res.ok) {
+        console.warn(
+          "API Admin Thương hiệu bị lỗi, tự động chuyển về API Public...",
+        );
+        res = await fetch(`${API_URL}/brands`);
+      }
+
+      const data = await res.json();
+      console.log("Dữ liệu Thương hiệu nhận từ Backend:", data);
+
+      // 3. Bóc tách dữ liệu an toàn theo mọi cấu trúc Laravel
       if (Array.isArray(data)) {
         setBrands(data);
       } else if (Array.isArray(data.data)) {
         setBrands(data.data);
       } else if (Array.isArray(data.brands)) {
         setBrands(data.brands);
+      } else if (data.data && Array.isArray(data.data.data)) {
+        setBrands(data.data.data);
       } else {
         setBrands([]);
       }
     } catch (err) {
-      console.error("Lỗi lấy danh sách thương hiệu Admin:", err);
+      console.error("Lỗi lấy danh sách thương hiệu:", err);
       setBrands([]);
     } finally {
       setLoading(false);
@@ -353,7 +365,8 @@ export default function AdminBrandPage() {
                         </td>
                         <td className="p-4">
                           {brand.logo ? (
-                            <Image
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img
                               src={brand.logo}
                               alt={brand.name}
                               className="h-8 w-16 object-contain rounded border border-gray-100 bg-white"

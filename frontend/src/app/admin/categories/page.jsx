@@ -21,27 +21,43 @@ export default function AdminCategoryPage() {
   const API_URL = "http://127.0.0.1:8000/api";
 
   // Tải danh sách danh mục DÀNH CHO ADMIN (Cần đính kèm Token)
+  // Tải danh sách danh mục (Tự động fallback & bóc tách dữ liệu)
   const loadCategories = async () => {
     const token = localStorage.getItem("access_token");
     try {
-      const res = await fetch(`${API_URL}/admin/categories`, {
+      // 1. Thử gọi API Admin kèm Token
+      let res = await fetch(`${API_URL}/admin/categories`, {
         headers: {
           Accept: "application/json",
           Authorization: `Bearer ${token}`,
         },
       });
-      const data = await res.json();
 
-      // Kiểm tra an toàn ép kiểu mảng
+      // 2. Nếu API Admin không có (404) hoặc hết hạn Token (401), fallback về API Public
+      if (!res.ok) {
+        console.warn(
+          "API Admin bị lỗi/không tồn tại, tự động chuyển về API Public...",
+        );
+        res = await fetch(`${API_URL}/categories`);
+      }
+
+      const data = await res.json();
+      console.log("Dữ liệu Danh mục nhận từ Backend:", data); // Xem tại F12 Console
+
+      // 3. Bóc tách dữ liệu linh hoạt theo mọi kiểu cấu trúc Laravel trả về
       if (Array.isArray(data)) {
         setCategories(data);
       } else if (Array.isArray(data.data)) {
         setCategories(data.data);
+      } else if (Array.isArray(data.categories)) {
+        setCategories(data.categories);
+      } else if (data.data && Array.isArray(data.data.data)) {
+        setCategories(data.data.data); // Trường hợp Laravel Paginate lồng nhau
       } else {
         setCategories([]);
       }
     } catch (err) {
-      console.error("Lỗi lấy danh mục Admin:", err);
+      console.error("Lỗi tải danh mục:", err);
       setCategories([]);
     } finally {
       setLoading(false);
