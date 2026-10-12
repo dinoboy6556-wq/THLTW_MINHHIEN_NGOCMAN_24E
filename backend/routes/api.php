@@ -14,7 +14,10 @@ use App\Http\Controllers\Api\Admin\AdminBrandController;
 use App\Http\Controllers\Api\Admin\AdminProductController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\Admin\OrderController as AdminOrderController;
-use App\Http\Controllers\Api\OrderController;
+use App\Http\Controllers\Api\admin\OrderController;
+use App\Http\Controllers\Api\Admin\UserController;
+
+
 
 // Middleware
 use App\Http\Middleware\CheckAdmin;
@@ -43,6 +46,15 @@ Route::prefix('cart')->group(function () {
     Route::put('/items/{id}', [CartController::class, 'update']);
     Route::delete('/items/{id}', [CartController::class, 'destroy']);
 });
+
+Route::get('/products', [ProductController::class, 'index']);
+Route::get('/products/{id}', [ProductController::class, 'show']);
+
+Route::get('/categories', [CategoryController::class, 'index']);
+Route::get('/categories/{id}', [CategoryController::class, 'show']);
+
+Route::get('/brands', [BrandController::class, 'index']);
+Route::get('/brands/{id}', [BrandController::class, 'show']);
 
 // API Đăng nhập
 Route::post('/login', [AuthController::class, 'login'])->name('login');
@@ -85,4 +97,36 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/orders/{id}', [AdminOrderController::class, 'show']);
     Route::put('/orders/{id}/status', [AdminOrderController::class, 'updateStatus']);
     Route::delete('/orders/{id}', [AdminOrderController::class, 'destroy']);
+});
+
+Route::prefix('admin')->group(function () {
+    Route::get('/users', [UserController::class, 'index']);
+    Route::get('/users/{id}', [UserController::class, 'show']);
+    Route::put('/users/{id}/block', [UserController::class, 'toggleBlock']);
+});
+
+// 1. ROUTE PUBLIC (Dành cho Trang chủ & Khách mua hàng - Không bị chặn 403)
+Route::get('/products', [ProductController::class, 'index']);
+Route::get('/categories', [CategoryController::class, 'index']);
+Route::get('/brands', [BrandController::class, 'index']);
+
+// 2. ROUTE ADMIN (Chỉ dành cho trang Quản trị /admin)
+Route::prefix('admin')->middleware(['auth:sanctum', 'check.admin'])->group(function () {
+    // Các thao tác Thêm, Sửa, Xóa của Admin nằm ở đây
+});
+
+Route::prefix('admin')->group(function () {
+    // Quản lý người dùng
+    Route::get('/users', [UserController::class, 'index']);
+    Route::get('/users/{id}', [UserController::class, 'show']);
+    Route::put('/users/{id}/block', [UserController::class, 'toggleBlock']);
+
+    // Quản lý Sản phẩm, Danh mục, Thương hiệu cho Admin
+    Route::get('/products', [ProductController::class, 'index']);
+    Route::post('/products', [ProductController::class, 'store']);
+    Route::put('/products/{id}', [ProductController::class, 'update']);
+    Route::delete('/products/{id}', [ProductController::class, 'destroy']);
+
+    Route::get('/categories', [CategoryController::class, 'index']);
+    Route::get('/brands', [BrandController::class, 'index']);
 });

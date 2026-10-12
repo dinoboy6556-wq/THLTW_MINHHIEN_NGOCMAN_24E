@@ -9,11 +9,11 @@ class CheckAdmin
 {
     public function handle(Request $request, Closure $next)
     {
-        // Kiểm tra xem đã đăng nhập và role có phải 'admin' hay không
-        if (!$request->user() || $request->user()->role !== 'admin') {
+        // Kiểm tra đã đăng nhập và role thuộc nhóm Quản trị ('admin' hoặc 'super_admin')
+        if (!$request->user() || !in_array($request->user()->role, ['admin', 'super_admin'])) {
             return response()->json([
                 'success' => false,
-                'message' => 'Quyền truy cập bị từ chối! Chỉ Admin mới có quyền thực hiện thao tác này.'
+                'message' => 'Quyền truy cập bị từ chối! Chỉ Quản trị viên mới có quyền thực hiện thao tác này.'
             ], 403); // 403 Forbidden
         }
 
