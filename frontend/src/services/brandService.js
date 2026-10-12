@@ -1,20 +1,16 @@
 import api from '@/lib/axios';
 
-const URL = '/admin/brands';
-
 const brandService = {
-  // Lấy danh sách thương hiệu (Tự động fallback nếu chưa mở route admin)
-  getAll: async () => {
-    try {
-      return await api.get(URL);
-    } catch {
-      return await api.get('/brands');
-    }
-  },
-  getById: (id) => api.get(`${URL}/${id}`),
-  create: (data) => api.post(URL, data),
-  update: (id, data) => api.put(`${URL}/${id}`, data),
-  remove: (id) => api.delete(`${URL}/${id}`),
+  // Dành cho Trang chủ & Cửa hàng (Public)
+  getAll: () => api.get('/brands'),
+  getById: (id) => api.get(`/brands/${id}`),
+
+  // Dành riêng cho trang Admin Dashboard
+  getAdminAll: () => api.get('/admin/brands'),
+  getAdminById: (id) => api.get(`/admin/brands/${id}`),
+  create: (data) => api.post('/admin/brands', data),
+  update: (id, data) => api.put(`/admin/brands/${id}`, data),
+  remove: (id) => api.delete(`/admin/brands/${id}`),
 };
 
 export default brandService;
