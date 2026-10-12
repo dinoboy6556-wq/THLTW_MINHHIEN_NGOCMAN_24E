@@ -1,16 +1,17 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export default function AdminSidebar({ onLogout }) {
   const pathname = usePathname();
 
   const navItems = [
-    { name: 'Tổng quan', path: '/admin', icon: '📊' },
-    { name: 'Quản lý Danh mục', path: '/admin/categories', icon: '📁' },
-    { name: 'Quản lý Thương hiệu', path: '/admin/brands', icon: '🏷️' },
-    { name: 'Quản lý Sản phẩm', path: '/admin/products', icon: '📦' },
+    { name: "Tổng quan", path: "/admin", icon: "📊" },
+    { name: "Quản lý Danh mục", path: "/admin/categories", icon: "📁" },
+    { name: "Quản lý Thương hiệu", path: "/admin/brands", icon: "🏷️" },
+    { name: "Quản lý Sản phẩm", path: "/admin/products", icon: "📦" },
+    { name: "Quản lý Đơn hàng", path: "/admin/orders", icon: "🛒" }, // Thêm mục Quản lý Đơn hàng
   ];
 
   return (
@@ -31,8 +32,8 @@ export default function AdminSidebar({ onLogout }) {
                 href={item.path}
                 className={`px-4 py-3 rounded-xl text-sm font-medium transition flex items-center gap-3 ${
                   isActive
-                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
-                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                    ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/30"
+                    : "text-slate-400 hover:bg-slate-800 hover:text-white"
                 }`}
               >
                 <span>{item.icon}</span>
