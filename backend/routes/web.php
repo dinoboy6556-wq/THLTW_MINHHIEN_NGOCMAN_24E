@@ -1,7 +1,8 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AdminController;
 
-Route::get('/', function () {
-    return view('welcome');
+Route::get('/admin', function () {
+    // Hoặc trả về một view giao diện admin, ví dụ: return view('admin.dashboard');
+    return "Trang Quản Trị (Admin Panel)";
 });
