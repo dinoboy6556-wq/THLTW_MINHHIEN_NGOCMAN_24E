@@ -21,6 +21,19 @@ class DatabaseSeeder extends Seeder
             $testUser
         );
 
+        if (app()->environment(['local', 'testing'])) {
+            $adminUser = User::factory()->raw([
+                'username' => 'admin_test',
+                'email' => 'admin@example.com',
+                'role' => 'admin',
+            ]);
+
+            User::query()->firstOrCreate(
+                ['email' => 'admin@example.com'],
+                $adminUser
+            );
+        }
+
         // Nếu bạn có seeder cho danh mục, thương hiệu, sản phẩm, hãy gọi chúng ở đây:
         // $this->call([
         //     CategorySeeder::class,

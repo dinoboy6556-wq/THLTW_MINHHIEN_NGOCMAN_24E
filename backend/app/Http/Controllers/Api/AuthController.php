@@ -30,8 +30,24 @@ class AuthController extends Controller
             ->orWhere('username', $request->login)
             ->first();
 
-        // Kiểm tra tài khoản và mật khẩu (Khớp với cột 'pass' trong DB)
-        if (!$user || !Hash::check($request->password, $user->pass)) {
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Thông tin đăng nhập hoặc mật khẩu không đúng!'
+            ], 401);
+        }
+
+        $isLegacyMd5Hash = preg_match('/\A[a-f0-9]{32}\z/i', $user->pass) === 1;
+
+        try {
+            $passwordMatches = $isLegacyMd5Hash
+                ? hash_equals(strtolower($user->pass), md5($request->password))
+                : Hash::check($request->password, $user->pass);
+        } catch (\RuntimeException) {
+            $passwordMatches = false;
+        }
+
+        if (!$passwordMatches) {
             return response()->json([
                 'success' => false,
                 'message' => 'Thông tin đăng nhập hoặc mật khẩu không đúng!'
@@ -44,6 +60,10 @@ class AuthController extends Controller
                 'success' => false,
                 'message' => 'Tài khoản của bạn hiện đang bị khóa!'
             ], 403);
+        }
+
+        if ($isLegacyMd5Hash) {
+            $user->forceFill(['pass' => Hash::make($request->password)])->save();
         }
 
         // Tạo Token Sanctum mới
