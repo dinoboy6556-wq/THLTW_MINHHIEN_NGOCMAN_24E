@@ -142,22 +142,39 @@ export default function HomePage() {
           )}
         </div>
 
-        {/* Khung Ảnh Sản Phẩm */}
+       {/* Khung Ảnh Sản Phẩm */}
         <div className="relative p-4 bg-gray-50/80 flex items-center justify-center h-52 overflow-hidden">
-          {product.thumbnail ? (
-            /* eslint-disable-next-line @next/next/no-img-element */
-            <img
-              src={product.thumbnail}
-              alt={product.name}
-              className="max-h-full max-w-full object-contain group-hover:scale-105 transition duration-300"
-              onError={(e) => {
-                e.target.onerror = null;
-                e.target.style.display = "none";
-              }}
-            />
-          ) : (
-            <div className="text-gray-400 text-xs font-medium">Chưa có ảnh</div>
-          )}
+          {(() => {
+            const rawImg = product.thumbnail || product.image || product.photo || product.img || product.image_url;
+            
+            if (!rawImg) {
+              return <div className="text-gray-400 text-xs font-medium">Chưa có ảnh</div>;
+            }
+
+            // Xử lý cắt bỏ đường dẫn tuyệt đối trên máy tính nếu có (ví dụ: F:/Code/.../iphone16.jpg -> iphone16.jpg)
+            let imageName = rawImg;
+            if (rawImg.includes(":") || rawImg.includes("\\") || rawImg.includes("/")) {
+              const parts = rawImg.split(/[\/\\]/);
+              imageName = parts[parts.length - 1];
+            }
+
+            const finalImageUrl = rawImg.startsWith("http") && !rawImg.includes("127.0.0.1") && !rawImg.includes("localhost")
+              ? rawImg
+              : `http://127.0.0.1:8000/storage/${imageName}`;
+
+            return (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={finalImageUrl}
+                alt={product.name}
+                className="max-h-full max-w-full object-contain group-hover:scale-105 transition duration-300"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.style.display = "none";
+                }}
+              />
+            );
+          })()}
         </div>
 
         {/* Thông tin sản phẩm */}
