@@ -122,11 +122,6 @@ Route::prefix('admin')->group(function () {
     Route::put('/users/{id}/block', [UserController::class, 'toggleBlock']);
 
     // Quản lý Sản phẩm, Danh mục, Thương hiệu cho Admin
-    Route::get('/products', [ProductController::class, 'index']);
-    Route::post('/products', [ProductController::class, 'store']);
-    Route::put('/products/{id}', [ProductController::class, 'update']);
-    Route::delete('/products/{id}', [ProductController::class, 'destroy']);
-
     Route::get('/categories', [CategoryController::class, 'index']);
     Route::get('/brands', [BrandController::class, 'index']);
 });

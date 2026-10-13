@@ -9,19 +9,13 @@ return new class extends Migration {
     {
         Schema::create('order_items', function (Blueprint $table) {
             $table->id();
-
-            // Khóa ngoại liên kết tới bảng orders (mới tạo có kiểu BIGINT)
             $table->unsignedBigInteger('order_id');
-
-            // Đổi sang unsignedInteger để khớp kiểu INT của bảng products trong CSDL
-            $table->unsignedInteger('product_id');
-
+            $table->unsignedBigInteger('product_id');
             $table->decimal('price', 15, 2);
             $table->integer('quantity')->default(1);
             $table->timestamps();
 
-            // Ràng buộc khóa ngoại
-            $table->foreign('order_id')->references('id')->on('orders')->onDelete('cascade');
+            $table->foreign('order_id')->references('id')->on('order')->onDelete('cascade');
             $table->foreign('product_id')->references('id')->on('products')->onDelete('cascade');
         });
     }

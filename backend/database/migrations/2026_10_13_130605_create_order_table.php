@@ -9,17 +9,14 @@ return new class extends Migration {
     {
         Schema::create('order', function (Blueprint $table) {
             $table->id();
-            $table->string('order_code')->unique();
-            $table->unsignedBigInteger('user_id');
-            $table->string('cus_name');
-            $table->string('cus_email')->nullable();
-            $table->string('cus_phone');
+            $table->string('order_code', 50);
+            $table->unsignedBigInteger('user_id')->nullable();
+            $table->string('cus_name', 100);
+            $table->string('cus_email', 100);
+            $table->string('cus_phone', 20);
             $table->text('cus_address');
-            $table->decimal('total_amount', 15, 2);
+            $table->decimal('total_amount', 12, 2)->default(0);
             $table->timestamps();
-
-            // Sửa dòng này trong file create_order_table.php:
-$table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
         });
     }
 
