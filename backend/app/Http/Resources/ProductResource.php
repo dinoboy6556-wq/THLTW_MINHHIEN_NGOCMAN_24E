@@ -4,6 +4,8 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class ProductResource extends JsonResource
 {
@@ -17,11 +19,29 @@ class ProductResource extends JsonResource
             'sale_price' => $this->promo_price ? (float) $this->promo_price : null,
             'final_price' => $this->final_price,
             'stock' => $this->stock,
-            'thumbnail' => $this->thumbnail ? (str_starts_with($this->thumbnail, 'http') ? $this->thumbnail : asset($this->thumbnail)) : null,
+            'thumbnail' => $this->thumbnailUrl(),
             'description' => $this->description,
             'category' => new CategoryResource($this->whenLoaded('category')),
             'brand' => new BrandResource($this->whenLoaded('brand')),
             'created_at' => $this->created_at?->format('Y-m-d H:i:s'),
         ];
+    }
+
+    private function thumbnailUrl(): ?string
+    {
+        if (!$this->thumbnail) {
+            return null;
+        }
+
+        if (Str::startsWith($this->thumbnail, ['http://', 'https://'])) {
+            return $this->thumbnail;
+        }
+
+        $path = ltrim($this->thumbnail, '/');
+        $url = Str::startsWith($path, 'storage/')
+            ? '/' . $path
+            : Storage::disk('public')->url($path);
+
+        return asset($url);
     }
 }

@@ -158,7 +158,7 @@ export default function HomePage() {
               imageName = parts[parts.length - 1];
             }
 
-            const finalImageUrl = rawImg.startsWith("http") && !rawImg.includes("127.0.0.1") && !rawImg.includes("localhost")
+            const finalImageUrl = rawImg.startsWith("http")
               ? rawImg
               : `http://127.0.0.1:8000/storage/${imageName}`;
 
