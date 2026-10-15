@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\BrandController;
+use App\Http\Controllers\Api\CheckoutController;
+use App\Http\Controllers\Api\OrderHistoryController;
 use App\Http\Controllers\Api\CartController;
 
 // Controllers Admin & Auth
@@ -14,7 +16,6 @@ use App\Http\Controllers\Api\Admin\AdminBrandController;
 use App\Http\Controllers\Api\Admin\AdminProductController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\Admin\OrderController as AdminOrderController;
-use App\Http\Controllers\Api\admin\OrderController;
 use App\Http\Controllers\Api\Admin\UserController;
 
 
@@ -68,6 +69,7 @@ Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/my-orders', [OrderHistoryController::class, 'index']);
 });
 
 
@@ -88,7 +90,7 @@ Route::middleware(['auth:sanctum', CheckAdmin::class])->prefix('admin')->group(f
 });
 
 // 1. Route Khách hàng (Đặt hàng từ Giỏ hàng)
-Route::post('/orders', [OrderController::class, 'store']);
+Route::post('/orders', [CheckoutController::class, 'store']);
 
 // 2. Route Quản trị viên (Admin Quản lý Đơn hàng)
 Route::prefix('admin')->name('admin.')->group(function () {

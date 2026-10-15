@@ -86,10 +86,10 @@ class ProductController extends Controller
      */
     public function show(string $slug): JsonResponse
     {
-        $product = Product::active()
-            ->where('slug', $slug)
-            ->with(['category', 'brand', 'images'])
-            ->first();
+        $query = Product::active()->with(['category', 'brand']);
+        $product = ctype_digit($slug)
+            ? $query->whereKey((int) $slug)->first()
+            : $query->where('slug', $slug)->first();
 
         if (!$product) {
             return response()->json([

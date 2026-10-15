@@ -2,11 +2,23 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import api, { getErrorMessage } from "@/lib/axios";
 
 export default function CartPage() {
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [promoCode, setPromoCode] = useState("");
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [checkoutInfo, setCheckoutInfo] = useState({
+    cus_name: "",
+    cus_email: "",
+    cus_phone: "",
+    cus_address: "",
+  });
+  const [paymentMethod, setPaymentMethod] = useState("cod");
+  const [placingOrder, setPlacingOrder] = useState(false);
+  const [checkoutError, setCheckoutError] = useState("");
+  const [orderComplete, setOrderComplete] = useState(null);
 
   // 1. TẢI GIỎ HÀNG TỪ LOCALSTORAGE (Dùng queueMicrotask tránh lỗi setState đồng bộ)
   useEffect(() => {
@@ -16,6 +28,13 @@ export default function CartPage() {
         if (savedCart) {
           setCartItems(JSON.parse(savedCart));
         }
+        const savedUser = JSON.parse(localStorage.getItem("user_info") || "{}");
+        setCheckoutInfo({
+          cus_name: savedUser.name || savedUser.username || "",
+          cus_email: savedUser.email || "",
+          cus_phone: savedUser.phone || "",
+          cus_address: savedUser.address || "",
+        });
       } catch (err) {
         console.error("Lỗi đọc giỏ hàng:", err);
       } finally {
@@ -57,6 +76,41 @@ export default function CartPage() {
   const handleClearCart = () => {
     if (confirm("Bạn có chắc chắn muốn xóa toàn bộ sản phẩm trong giỏ hàng?")) {
       saveCartToStorage([]);
+    }
+  };
+
+  const handleCheckout = async (event) => {
+    event.preventDefault();
+    setPlacingOrder(true);
+    setCheckoutError("");
+
+    try {
+      const response = await api.post("/orders", {
+        ...checkoutInfo,
+        payment_method: paymentMethod,
+        items: cartItems.map((item) => ({
+          product_id: item.id,
+          quantity: Number(item.quantity),
+        })),
+      });
+
+      const order = response.data?.data;
+      if (!order) {
+        throw new Error("Không nhận được thông tin đơn hàng.");
+      }
+
+      setOrderComplete(order);
+      saveCartToStorage([]);
+      setShowCheckout(false);
+    } catch (error) {
+      const validationErrors = error.response?.data?.errors;
+      setCheckoutError(
+        validationErrors
+          ? Object.values(validationErrors).flat()[0]
+          : getErrorMessage(error),
+      );
+    } finally {
+      setPlacingOrder(false);
     }
   };
 
@@ -102,7 +156,33 @@ export default function CartPage() {
           )}
         </div>
 
-        {cartItems.length === 0 ? (
+        {orderComplete ? (
+          <section className="bg-white rounded-xl p-8 sm:p-12 text-center border border-emerald-100 shadow-sm">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-100 text-2xl text-emerald-700">
+              ✓
+            </div>
+            <h2 className="mt-4 text-2xl font-bold text-gray-900">
+              Đặt hàng thành công
+            </h2>
+            <p className="mt-2 text-sm text-gray-600">
+              Mã đơn hàng <strong>{orderComplete.order_code}</strong>
+            </p>
+            <p className="mt-1 text-sm text-gray-600">
+              Tổng thanh toán: <strong>{Number(orderComplete.total_amount).toLocaleString("vi-VN")} đ</strong>
+            </p>
+            <p className="mt-3 text-sm text-gray-500">
+              {orderComplete.payment_method === "bank_transfer"
+                ? "Đơn hàng đang chờ xác nhận. Cửa hàng sẽ liên hệ hướng dẫn chuyển khoản; chưa ghi nhận đã thanh toán."
+                : "Đơn hàng đang chờ xác nhận. Bạn thanh toán khi nhận hàng."}
+            </p>
+            <Link
+              href="/products"
+              className="mt-6 inline-flex rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700"
+            >
+              Tiếp tục mua sắm
+            </Link>
+          </section>
+        ) : cartItems.length === 0 ? (
           /* ================= GIỎ HÀNG RỖNG ================= */
           <div className="bg-white rounded-2xl p-12 text-center border border-gray-100 shadow-sm flex flex-col items-center gap-4">
             <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center text-3xl">
@@ -326,11 +406,10 @@ export default function CartPage() {
 
                 {/* Nút thanh toán */}
                 <button
-                  onClick={() =>
-                    alert(
-                      "Chức năng Đặt hàng & Thanh toán sẽ được kết nối ở bước tiếp theo!",
-                    )
-                  }
+                  onClick={() => {
+                    setCheckoutError("");
+                    setShowCheckout(true);
+                  }}
                   className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl transition shadow-lg shadow-indigo-600/30 text-center text-sm"
                 >
                   TIẾN HÀNH THANH TOÁN
@@ -351,6 +430,142 @@ export default function CartPage() {
           </div>
         )}
       </div>
+
+      {showCheckout && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setShowCheckout(false)}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="checkout-title"
+            className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-xl bg-white p-6 shadow-2xl sm:p-8"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mb-6 flex items-start justify-between border-b border-gray-100 pb-4">
+              <div>
+                <h2 id="checkout-title" className="text-xl font-bold text-gray-900">
+                  Thông tin thanh toán
+                </h2>
+                <p className="mt-1 text-sm text-gray-500">
+                  Tổng cộng {total.toLocaleString("vi-VN")} đ, gồm phí giao hàng.
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="Đóng checkout"
+                onClick={() => setShowCheckout(false)}
+                className="text-xl leading-none text-gray-400 hover:text-gray-700"
+              >
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={handleCheckout} className="flex flex-col gap-4">
+              <label className="text-sm font-medium text-gray-700">
+                Họ và tên
+                <input
+                  required
+                  maxLength={100}
+                  name="cus_name"
+                  value={checkoutInfo.cus_name}
+                  onChange={(event) => setCheckoutInfo((current) => ({ ...current, cus_name: event.target.value }))}
+                  className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                />
+              </label>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="text-sm font-medium text-gray-700">
+                  Email
+                  <input
+                    required
+                    type="email"
+                    maxLength={100}
+                    name="cus_email"
+                    value={checkoutInfo.cus_email}
+                    onChange={(event) => setCheckoutInfo((current) => ({ ...current, cus_email: event.target.value }))}
+                    className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                  />
+                </label>
+                <label className="text-sm font-medium text-gray-700">
+                  Số điện thoại
+                  <input
+                    required
+                    type="tel"
+                    maxLength={20}
+                    name="cus_phone"
+                    value={checkoutInfo.cus_phone}
+                    onChange={(event) => setCheckoutInfo((current) => ({ ...current, cus_phone: event.target.value }))}
+                    className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                  />
+                </label>
+              </div>
+              <label className="text-sm font-medium text-gray-700">
+                Địa chỉ giao hàng
+                <textarea
+                  required
+                  maxLength={1000}
+                  rows={2}
+                  name="cus_address"
+                  value={checkoutInfo.cus_address}
+                  onChange={(event) => setCheckoutInfo((current) => ({ ...current, cus_address: event.target.value }))}
+                  className="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                />
+              </label>
+
+              <fieldset className="mt-1">
+                <legend className="mb-2 text-sm font-semibold text-gray-800">
+                  Phương thức thanh toán
+                </legend>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 ${paymentMethod === "cod" ? "border-indigo-500 bg-indigo-50" : "border-gray-200"}`}>
+                    <input
+                      type="radio"
+                      name="payment_method"
+                      value="cod"
+                      checked={paymentMethod === "cod"}
+                      onChange={() => setPaymentMethod("cod")}
+                      className="mt-1 accent-indigo-600"
+                    />
+                    <span>
+                      <span className="block text-sm font-semibold text-gray-800">Thanh toán khi nhận</span>
+                      <span className="mt-1 block text-xs text-gray-500">Trả tiền trực tiếp cho đơn vị giao hàng.</span>
+                    </span>
+                  </label>
+                  <label className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 ${paymentMethod === "bank_transfer" ? "border-indigo-500 bg-indigo-50" : "border-gray-200"}`}>
+                    <input
+                      type="radio"
+                      name="payment_method"
+                      value="bank_transfer"
+                      checked={paymentMethod === "bank_transfer"}
+                      onChange={() => setPaymentMethod("bank_transfer")}
+                      className="mt-1 accent-indigo-600"
+                    />
+                    <span>
+                      <span className="block text-sm font-semibold text-gray-800">Chuyển khoản</span>
+                      <span className="mt-1 block text-xs text-gray-500">Cửa hàng sẽ liên hệ hướng dẫn sau khi xác nhận.</span>
+                    </span>
+                  </label>
+                </div>
+              </fieldset>
+
+              {checkoutError && (
+                <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+                  {checkoutError}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={placingOrder}
+                className="mt-2 h-12 rounded-lg bg-indigo-600 px-5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-wait disabled:opacity-60"
+              >
+                {placingOrder ? "Đang tạo đơn hàng..." : `Xác nhận đặt hàng · ${total.toLocaleString("vi-VN")} đ`}
+              </button>
+            </form>
+          </section>
+        </div>
+      )}
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 
 export default function Header() {
   const [user, setUser] = useState(null);
+  const [cartCount, setCartCount] = useState(0);
   const router = useRouter();
 
   useEffect(() => {
@@ -21,6 +22,26 @@ export default function Header() {
         console.error('Lỗi parse thông tin user:', err);
       }
     }
+  }, []);
+
+  useEffect(() => {
+    const syncCartCount = () => {
+      try {
+        const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+        setCartCount(cart.reduce((count, item) => count + Number(item.quantity || 0), 0));
+      } catch {
+        setCartCount(0);
+      }
+    };
+
+    queueMicrotask(syncCartCount);
+    window.addEventListener('cartUpdated', syncCartCount);
+    window.addEventListener('storage', syncCartCount);
+
+    return () => {
+      window.removeEventListener('cartUpdated', syncCartCount);
+      window.removeEventListener('storage', syncCartCount);
+    };
   }, []);
 
   const handleLogout = async () => {
@@ -63,6 +84,11 @@ export default function Header() {
         <div className="flex items-center gap-4">
           <Link href="/cart" className="text-gray-700 hover:text-indigo-600 font-medium text-sm flex items-center gap-1">
             🛒 Giỏ hàng
+            {cartCount > 0 && (
+              <span className="min-w-5 h-5 px-1 rounded-full bg-indigo-600 text-white text-[10px] font-bold flex items-center justify-center">
+                {cartCount}
+              </span>
+            )}
           </Link>
 
           {user ? (
@@ -72,6 +98,9 @@ export default function Header() {
                   Quản trị
                 </Link>
               )}
+              <Link href="/orders" className="text-xs font-semibold text-indigo-600 hover:text-indigo-800">
+                Đơn hàng
+              </Link>
               <span className="text-sm text-gray-700 font-medium">{user.username}</span>
               <button
                 onClick={handleLogout}
