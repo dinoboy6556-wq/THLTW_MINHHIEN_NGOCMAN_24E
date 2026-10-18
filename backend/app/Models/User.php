@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -30,6 +31,11 @@ class User extends Authenticatable
         'pass',
         'remember_token',
     ];
+
+    public function orders(): HasMany
+    {
+        return $this->hasMany(Order::class, 'user_id');
+    }
 
     // 2. Khai báo cho Laravel Auth biết cột mật khẩu tên là 'pass'
     public function getAuthPassword()

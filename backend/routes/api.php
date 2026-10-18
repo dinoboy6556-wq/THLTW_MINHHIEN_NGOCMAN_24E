@@ -8,7 +8,6 @@ use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\BrandController;
 use App\Http\Controllers\Api\CheckoutController;
 use App\Http\Controllers\Api\OrderHistoryController;
-use App\Http\Controllers\Api\CartController;
 
 // Controllers Admin & Auth
 use App\Http\Controllers\Api\Admin\AdminCategoryController;
@@ -39,14 +38,6 @@ Route::get('/brands/{slug}', [BrandController::class, 'show']);
 // API Sản phẩm
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/{slug}', [ProductController::class, 'show']);
-
-// API Giỏ hàng (Hỗ trợ cả Guest dùng session_id và User đăng nhập)
-Route::prefix('cart')->group(function () {
-    Route::get('/', [CartController::class, 'index']);
-    Route::post('/add', [CartController::class, 'store']);
-    Route::put('/items/{id}', [CartController::class, 'update']);
-    Route::delete('/items/{id}', [CartController::class, 'destroy']);
-});
 
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/{id}', [ProductController::class, 'show']);

@@ -2,7 +2,15 @@
 
 import { useState, useEffect, useCallback } from "react";
 import orderService from "@/services/orderService";
-import { getErrorMessage } from "@/lib/axios";
+import api, { getErrorMessage } from "@/lib/axios";
+
+const getProductImageUrl = (thumbnail) => {
+  if (!thumbnail) return null;
+  if (/^https?:\/\//i.test(thumbnail)) return thumbnail;
+
+  const imagePath = thumbnail.replace(/^\/+/, "").replace(/^storage\//, "");
+  return new URL(`/storage/${imagePath}`, api.defaults.baseURL).toString();
+};
 
 export default function AdminOrderPage() {
   const [orders, setOrders] = useState([]);
@@ -413,7 +421,9 @@ export default function AdminOrderPage() {
                           {item.thumbnail || item.product?.thumbnail ? (
                             /* eslint-disable-next-line @next/next/no-img-element */
                             <img
-                              src={item.thumbnail || item.product?.thumbnail}
+                              src={getProductImageUrl(
+                                item.thumbnail || item.product?.thumbnail,
+                              )}
                               alt={item.name || item.product_name}
                               className="w-full h-full object-cover"
                             />
