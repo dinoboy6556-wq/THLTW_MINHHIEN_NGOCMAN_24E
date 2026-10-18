@@ -9,6 +9,8 @@ export default function CartPage() {
   const [loading, setLoading] = useState(true);
   const [promoCode, setPromoCode] = useState("");
   const [showCheckout, setShowCheckout] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isCustomer, setIsCustomer] = useState(false);
   const [checkoutInfo, setCheckoutInfo] = useState({
     cus_name: "",
     cus_email: "",
@@ -29,6 +31,9 @@ export default function CartPage() {
           setCartItems(JSON.parse(savedCart));
         }
         const savedUser = JSON.parse(localStorage.getItem("user_info") || "{}");
+        const hasAccessToken = Boolean(localStorage.getItem("access_token"));
+        setIsLoggedIn(hasAccessToken);
+        setIsCustomer(hasAccessToken && savedUser.role === "member");
         setCheckoutInfo({
           cus_name: savedUser.name || savedUser.username || "",
           cus_email: savedUser.email || "",
@@ -81,6 +86,11 @@ export default function CartPage() {
 
   const handleCheckout = async (event) => {
     event.preventDefault();
+    if (!isCustomer) {
+      setCheckoutError("Vui lòng đăng nhập bằng tài khoản khách hàng để đặt hàng.");
+      return;
+    }
+
     setPlacingOrder(true);
     setCheckoutError("");
 
@@ -405,15 +415,28 @@ export default function CartPage() {
                 </div>
 
                 {/* Nút thanh toán */}
-                <button
-                  onClick={() => {
-                    setCheckoutError("");
-                    setShowCheckout(true);
-                  }}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl transition shadow-lg shadow-indigo-600/30 text-center text-sm"
-                >
-                  TIẾN HÀNH THANH TOÁN
-                </button>
+                {isCustomer ? (
+                  <button
+                    onClick={() => {
+                      setCheckoutError("");
+                      setShowCheckout(true);
+                    }}
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl transition shadow-lg shadow-indigo-600/30 text-center text-sm"
+                  >
+                    TIẾN HÀNH THANH TOÁN
+                  </button>
+                ) : isLoggedIn ? (
+                  <p className="rounded-lg bg-amber-50 px-4 py-3 text-center text-sm text-amber-800">
+                    Chỉ tài khoản khách hàng mới được đặt hàng.
+                  </p>
+                ) : (
+                  <Link
+                    href="/login?redirect=/cart"
+                    className="block w-full rounded-xl bg-indigo-600 py-3.5 text-center text-sm font-bold text-white shadow-lg shadow-indigo-600/30 transition hover:bg-indigo-700"
+                  >
+                    ĐĂNG NHẬP ĐỂ ĐẶT HÀNG
+                  </Link>
+                )}
 
                 {/* Cam kết mua sắm */}
                 <div className="flex flex-col gap-2 pt-2 border-t text-xs text-gray-500">

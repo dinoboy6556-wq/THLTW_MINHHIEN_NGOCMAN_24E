@@ -11,6 +11,42 @@ use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
+    public function register(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'username' => 'required|string|max:50|unique:user,username',
+            'email' => 'required|email|max:100|unique:user,email',
+            'password' => 'required|string|min:8|confirmed',
+            'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string|max:1000',
+        ]);
+
+        $user = User::create([
+            'username' => $validated['username'],
+            'email' => $validated['email'],
+            'pass' => Hash::make($validated['password']),
+            'phone' => $validated['phone'] ?? null,
+            'address' => $validated['address'] ?? null,
+            'role' => 'member',
+            'status' => 1,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đăng ký thành công.',
+            'access_token' => $user->createToken('auth_token')->plainTextToken,
+            'token_type' => 'Bearer',
+            'user' => [
+                'id' => $user->id,
+                'username' => $user->username,
+                'email' => $user->email,
+                'phone' => $user->phone,
+                'address' => $user->address,
+                'role' => $user->role,
+            ],
+        ], 201);
+    }
+
     /**
      * API Đăng nhập
      */

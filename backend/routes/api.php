@@ -50,6 +50,7 @@ Route::get('/brands/{id}', [BrandController::class, 'show']);
 
 // API Đăng nhập
 Route::post('/login', [AuthController::class, 'login'])->name('login');
+Route::post('/register', [AuthController::class, 'register']);
 
 
 /*
@@ -81,7 +82,7 @@ Route::middleware(['auth:sanctum', CheckAdmin::class])->prefix('admin')->group(f
 });
 
 // 1. Route Khách hàng (Đặt hàng từ Giỏ hàng)
-Route::post('/orders', [CheckoutController::class, 'store']);
+Route::middleware('auth:sanctum')->post('/orders', [CheckoutController::class, 'store']);
 
 // 2. Route Quản trị viên (Admin Quản lý Đơn hàng)
 Route::prefix('admin')->name('admin.')->group(function () {
