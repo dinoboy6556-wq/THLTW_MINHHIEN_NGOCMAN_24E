@@ -6,7 +6,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\BrandController;
-use App\Http\Controllers\Api\CartController;
+use App\Http\Controllers\Api\CheckoutController;
+use App\Http\Controllers\Api\OrderHistoryController;
 
 // Controllers Admin & Auth
 use App\Http\Controllers\Api\Admin\AdminCategoryController;
@@ -14,7 +15,6 @@ use App\Http\Controllers\Api\Admin\AdminBrandController;
 use App\Http\Controllers\Api\Admin\AdminProductController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\Admin\OrderController as AdminOrderController;
-use App\Http\Controllers\Api\admin\OrderController;
 use App\Http\Controllers\Api\Admin\UserController;
 
 
@@ -39,14 +39,6 @@ Route::get('/brands/{slug}', [BrandController::class, 'show']);
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/{slug}', [ProductController::class, 'show']);
 
-// API Giỏ hàng (Hỗ trợ cả Guest dùng session_id và User đăng nhập)
-Route::prefix('cart')->group(function () {
-    Route::get('/', [CartController::class, 'index']);
-    Route::post('/add', [CartController::class, 'store']);
-    Route::put('/items/{id}', [CartController::class, 'update']);
-    Route::delete('/items/{id}', [CartController::class, 'destroy']);
-});
-
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/{id}', [ProductController::class, 'show']);
 
@@ -58,6 +50,7 @@ Route::get('/brands/{id}', [BrandController::class, 'show']);
 
 // API Đăng nhập
 Route::post('/login', [AuthController::class, 'login'])->name('login');
+Route::post('/register', [AuthController::class, 'register']);
 
 
 /*
@@ -68,6 +61,7 @@ Route::post('/login', [AuthController::class, 'login'])->name('login');
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/my-orders', [OrderHistoryController::class, 'index']);
 });
 
 
@@ -88,7 +82,7 @@ Route::middleware(['auth:sanctum', CheckAdmin::class])->prefix('admin')->group(f
 });
 
 // 1. Route Khách hàng (Đặt hàng từ Giỏ hàng)
-Route::post('/orders', [OrderController::class, 'store']);
+Route::middleware('auth:sanctum')->post('/orders', [CheckoutController::class, 'store']);
 
 // 2. Route Quản trị viên (Admin Quản lý Đơn hàng)
 Route::prefix('admin')->name('admin.')->group(function () {
@@ -122,11 +116,6 @@ Route::prefix('admin')->group(function () {
     Route::put('/users/{id}/block', [UserController::class, 'toggleBlock']);
 
     // Quản lý Sản phẩm, Danh mục, Thương hiệu cho Admin
-    Route::get('/products', [ProductController::class, 'index']);
-    Route::post('/products', [ProductController::class, 'store']);
-    Route::put('/products/{id}', [ProductController::class, 'update']);
-    Route::delete('/products/{id}', [ProductController::class, 'destroy']);
-
     Route::get('/categories', [CategoryController::class, 'index']);
     Route::get('/brands', [BrandController::class, 'index']);
 });

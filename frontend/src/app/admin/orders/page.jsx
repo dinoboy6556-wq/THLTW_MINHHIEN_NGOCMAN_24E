@@ -2,7 +2,15 @@
 
 import { useState, useEffect, useCallback } from "react";
 import orderService from "@/services/orderService";
-import { getErrorMessage } from "@/lib/axios";
+import api, { getErrorMessage } from "@/lib/axios";
+
+const getProductImageUrl = (thumbnail) => {
+  if (!thumbnail) return null;
+  if (/^https?:\/\//i.test(thumbnail)) return thumbnail;
+
+  const imagePath = thumbnail.replace(/^\/+/, "").replace(/^storage\//, "");
+  return new URL(`/storage/${imagePath}`, api.defaults.baseURL).toString();
+};
 
 export default function AdminOrderPage() {
   const [orders, setOrders] = useState([]);
@@ -378,6 +386,22 @@ export default function AdminOrderPage() {
                     "Giao tại cửa hàng / Chưa nhập địa chỉ"}
                 </p>
               </div>
+              <div className="col-span-2 border-t border-gray-200 pt-3">
+                <span className="text-xs text-gray-400 block mb-1">
+                  Thanh toán
+                </span>
+                <p className="text-xs text-gray-700">
+                  {selectedOrder.payment_method === "bank_transfer"
+                    ? "Chuyển khoản ngân hàng"
+                    : "Thanh toán khi nhận hàng"}
+                  {" · "}
+                  {selectedOrder.payment_status === "paid"
+                    ? "Đã thanh toán"
+                    : "Chờ thanh toán"}
+                  {selectedOrder.shipping_fee > 0 &&
+                    ` · Phí giao hàng ${Number(selectedOrder.shipping_fee).toLocaleString("vi-VN")} đ`}
+                </p>
+              </div>
             </div>
 
             {/* Danh sách sản phẩm trong giỏ/đơn */}
@@ -397,7 +421,9 @@ export default function AdminOrderPage() {
                           {item.thumbnail || item.product?.thumbnail ? (
                             /* eslint-disable-next-line @next/next/no-img-element */
                             <img
-                              src={item.thumbnail || item.product?.thumbnail}
+                              src={getProductImageUrl(
+                                item.thumbnail || item.product?.thumbnail,
+                              )}
                               alt={item.name || item.product_name}
                               className="w-full h-full object-cover"
                             />

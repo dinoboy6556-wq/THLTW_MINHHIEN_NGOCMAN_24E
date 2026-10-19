@@ -23,6 +23,23 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (
+      error.response?.status === 401 &&
+      typeof window !== 'undefined' &&
+      window.location.pathname.startsWith('/admin')
+    ) {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('user_info');
+      window.location.replace('/login');
+    }
+
+    return Promise.reject(error);
+  }
+);
+
 export default api;
 
 // 3. Hàm hỗ trợ đọc câu thông báo lỗi

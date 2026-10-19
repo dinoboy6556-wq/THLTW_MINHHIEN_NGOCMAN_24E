@@ -138,6 +138,7 @@ export default function AdminProductPage() {
         {showForm && (
           <div className="lg:col-span-1">
             <ProductForm
+              key={editingProduct?.id ?? "new-product"}
               editingProduct={editingProduct}
               onSuccess={handleSuccess}
               onCancel={() => {

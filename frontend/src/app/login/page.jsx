@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function LoginPage() {
   const [login, setLogin] = useState('');
@@ -36,7 +37,8 @@ export default function LoginPage() {
         if (data.user.role === 'admin') {
           router.push('/admin');
         } else {
-          router.push('/');
+          const returnToCart = new URLSearchParams(window.location.search).get('redirect') === '/cart';
+          router.push(returnToCart ? '/cart' : '/');
         }
       } else {
         setError(data.message || 'Đăng nhập thất bại, vui lòng kiểm tra lại!');
@@ -93,6 +95,22 @@ export default function LoginPage() {
             {loading ? 'Đang xác thực...' : 'Đăng Nhập'}
           </button>
         </form>
+
+        <p className="mt-6 text-center text-sm text-gray-600">
+          Chưa có tài khoản?{' '}
+          <Link
+            href="/register"
+            onClick={(event) => {
+              if (new URLSearchParams(window.location.search).get('redirect') === '/cart') {
+                event.preventDefault();
+                router.push('/register?redirect=/cart');
+              }
+            }}
+            className="font-semibold text-indigo-600 hover:text-indigo-800"
+          >
+            Đăng ký ngay
+          </Link>
+        </p>
       </div>
     </div>
   );

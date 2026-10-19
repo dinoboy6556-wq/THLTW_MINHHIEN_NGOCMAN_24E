@@ -7,6 +7,7 @@ use App\Http\Resources\ProductResource;
 use App\Models\Product;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class ProductController extends Controller
 {
@@ -85,10 +86,10 @@ class ProductController extends Controller
      */
     public function show(string $slug): JsonResponse
     {
-        $product = Product::active()
-            ->where('slug', $slug)
-            ->with(['category', 'brand', 'images'])
-            ->first();
+        $query = Product::active()->with(['category', 'brand']);
+        $product = ctype_digit($slug)
+            ? $query->whereKey((int) $slug)->first()
+            : $query->where('slug', $slug)->first();
 
         if (!$product) {
             return response()->json([
@@ -102,5 +103,47 @@ class ProductController extends Controller
             'message' => 'Lấy chi tiết sản phẩm thành công',
             'data' => new ProductResource($product)
         ], 200);
+    }
+
+    /**
+     * Thêm mới sản phẩm (Dành cho trang Admin)
+     */
+    /**
+     * Thêm mới sản phẩm (Dành cho trang Admin)
+     */
+    public function store(Request $request): JsonResponse
+    {
+        // Tự động map các key từ frontend (có thể là camelCase như categoryId) sang snake_case
+        $request->merge([
+            'category_id' => $request->input('category_id') ?? $request->input('categoryId') ?? $request->input('category'),
+            'brand_id' => $request->input('brand_id') ?? $request->input('brandId') ?? $request->input('brand'),
+            'price_sale' => $request->input('price_sale') ?? $request->input('priceSale'),
+        ]);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'slug' => 'nullable|string|unique:products,slug',
+            'category_id' => 'required|exists:categories,id',
+            'brand_id' => 'required|exists:brands,id',
+            'price' => 'required|numeric',
+            'price_sale' => 'nullable|numeric',
+            'quantity' => 'required|integer',
+            'thumbnail' => 'nullable|string',
+            'description' => 'nullable|string',
+            'status' => 'required|integer',
+        ]);
+
+        // Tự động tạo slug nếu chưa có
+        if (empty($validated['slug'])) {
+            $validated['slug'] = Str::slug($validated['name']);
+        }
+
+        $product = Product::create($validated);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Thêm sản phẩm thành công!',
+            'data' => new ProductResource($product)
+        ], 201);
     }
 }

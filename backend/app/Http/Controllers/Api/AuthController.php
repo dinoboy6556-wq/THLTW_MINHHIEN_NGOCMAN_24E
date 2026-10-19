@@ -11,6 +11,42 @@ use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
+    public function register(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'username' => 'required|string|max:50|unique:user,username',
+            'email' => 'required|email|max:100|unique:user,email',
+            'password' => 'required|string|min:8|confirmed',
+            'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string|max:1000',
+        ]);
+
+        $user = User::create([
+            'username' => $validated['username'],
+            'email' => $validated['email'],
+            'pass' => Hash::make($validated['password']),
+            'phone' => $validated['phone'] ?? null,
+            'address' => $validated['address'] ?? null,
+            'role' => 'member',
+            'status' => 1,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đăng ký thành công.',
+            'access_token' => $user->createToken('auth_token')->plainTextToken,
+            'token_type' => 'Bearer',
+            'user' => [
+                'id' => $user->id,
+                'username' => $user->username,
+                'email' => $user->email,
+                'phone' => $user->phone,
+                'address' => $user->address,
+                'role' => $user->role,
+            ],
+        ], 201);
+    }
+
     /**
      * API Đăng nhập
      */
@@ -30,8 +66,24 @@ class AuthController extends Controller
             ->orWhere('username', $request->login)
             ->first();
 
-        // Kiểm tra tài khoản và mật khẩu (Khớp với cột 'pass' trong DB)
-        if (!$user || !Hash::check($request->password, $user->pass)) {
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Thông tin đăng nhập hoặc mật khẩu không đúng!'
+            ], 401);
+        }
+
+        $isLegacyMd5Hash = preg_match('/\A[a-f0-9]{32}\z/i', $user->pass) === 1;
+
+        try {
+            $passwordMatches = $isLegacyMd5Hash
+                ? hash_equals(strtolower($user->pass), md5($request->password))
+                : Hash::check($request->password, $user->pass);
+        } catch (\RuntimeException) {
+            $passwordMatches = false;
+        }
+
+        if (!$passwordMatches) {
             return response()->json([
                 'success' => false,
                 'message' => 'Thông tin đăng nhập hoặc mật khẩu không đúng!'
@@ -44,6 +96,10 @@ class AuthController extends Controller
                 'success' => false,
                 'message' => 'Tài khoản của bạn hiện đang bị khóa!'
             ], 403);
+        }
+
+        if ($isLegacyMd5Hash) {
+            $user->forceFill(['pass' => Hash::make($request->password)])->save();
         }
 
         // Tạo Token Sanctum mới

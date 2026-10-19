@@ -22,6 +22,14 @@ export default function ProductForm({ editingProduct, onSuccess, onCancel }) {
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [thumbnailFile, setThumbnailFile] = useState(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState("");
+
+  useEffect(() => {
+    return () => {
+      if (thumbnailPreview) URL.revokeObjectURL(thumbnailPreview);
+    };
+  }, [thumbnailPreview]);
 
   // Hàm bóc tách Mảng an toàn
   const extractArray = (resData) => {
@@ -112,7 +120,7 @@ export default function ProductForm({ editingProduct, onSuccess, onCancel }) {
     e.preventDefault();
     setLoading(true);
 
-    const payload = {
+    const productData = {
       ...formData,
       cate_id: Number(formData.cate_id),
       brand_id: Number(formData.brand_id),
@@ -121,9 +129,29 @@ export default function ProductForm({ editingProduct, onSuccess, onCancel }) {
       stock: Number(formData.stock),
       status: Number(formData.status),
     };
+    const payload = new FormData();
+
+    Object.entries(productData).forEach(([key, value]) => {
+      if (
+        key === "thumbnail" &&
+        (thumbnailFile ||
+          (editingProduct && value === (editingProduct.thumbnail || "")))
+      ) {
+        return;
+      }
+
+      if (value !== null && value !== undefined) {
+        payload.append(key, String(value));
+      }
+    });
+
+    if (thumbnailFile) {
+      payload.append("thumbnail_file", thumbnailFile);
+    }
 
     try {
       if (editingProduct) {
+        payload.append("_method", "PUT");
         await productService.update(editingProduct.id, payload);
         alert("Cập nhật sản phẩm thành công!");
       } else {
@@ -279,6 +307,31 @@ export default function ProductForm({ editingProduct, onSuccess, onCancel }) {
           className="w-full px-3 py-2 border rounded-lg text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
           placeholder="https://via.placeholder.com/400x400.png"
         />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Chọn ảnh từ máy
+        </label>
+        <input
+          key={editingProduct?.id || "new-product"}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          onChange={(e) => {
+            const file = e.target.files?.[0] || null;
+            setThumbnailFile(file);
+            setThumbnailPreview(file ? URL.createObjectURL(file) : "");
+          }}
+          className="w-full text-sm text-gray-700 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-3 file:py-2 file:font-medium file:text-indigo-700 hover:file:bg-indigo-100"
+        />
+        <p className="mt-1 text-xs text-gray-500">JPG, PNG hoặc WebP, tối đa 5 MB.</p>
+        {(thumbnailPreview || formData.thumbnail) && (
+          <img
+            src={thumbnailPreview || formData.thumbnail}
+            alt="Xem trước ảnh sản phẩm"
+            className="mt-3 h-28 w-28 rounded-lg border border-gray-200 bg-gray-50 object-contain"
+          />
+        )}
       </div>
 
       <div>

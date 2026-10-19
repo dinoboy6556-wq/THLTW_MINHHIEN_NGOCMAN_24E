@@ -7,6 +7,7 @@ use App\Models\Product;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class AdminProductController extends Controller
@@ -35,6 +36,11 @@ class AdminProductController extends Controller
         }
 
         $products = $query->orderBy('id', 'desc')->paginate($request->input('per_page', 10));
+        $products->getCollection()->transform(function (Product $product): Product {
+            $product->setAttribute('thumbnail', $this->thumbnailUrl($product->thumbnail));
+
+            return $product;
+        });
 
         return response()->json(['success' => true, 'data' => $products], 200);
     }
@@ -51,7 +57,8 @@ class AdminProductController extends Controller
             'price' => 'required|numeric|min:0',
             'promo_price' => 'nullable|numeric|min:0|lte:price', // Giá KM phải nhỏ hơn hoặc bằng giá gốc
             'stock' => 'required|integer|min:0',
-            'thumbnail' => 'nullable|string',
+            'thumbnail' => 'nullable|string|max:2048',
+            'thumbnail_file' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
             'description' => 'nullable|string',
             'status' => 'required|in:0,1',
         ]);
@@ -59,6 +66,10 @@ class AdminProductController extends Controller
         if ($validator->fails()) {
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
         }
+
+        $thumbnail = $request->hasFile('thumbnail_file')
+            ? $request->file('thumbnail_file')->store('products', 'public')
+            : $request->input('thumbnail');
 
         $product = Product::create([
             'name' => $request->name,
@@ -68,10 +79,12 @@ class AdminProductController extends Controller
             'price' => $request->price,
             'promo_price' => $request->promo_price,
             'stock' => $request->stock,
-            'thumbnail' => $request->thumbnail,
+            'thumbnail' => $thumbnail,
             'description' => $request->description,
             'status' => $request->status,
         ]);
+
+        $product->setAttribute('thumbnail', $this->thumbnailUrl($product->thumbnail));
 
         return response()->json(['success' => true, 'message' => 'Thêm sản phẩm thành công', 'data' => $product], 201);
     }
@@ -103,7 +116,8 @@ class AdminProductController extends Controller
             'price' => 'required|numeric|min:0',
             'promo_price' => 'nullable|numeric|min:0|lte:price',
             'stock' => 'required|integer|min:0',
-            'thumbnail' => 'nullable|string',
+            'thumbnail' => 'nullable|string|max:2048',
+            'thumbnail_file' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
             'description' => 'nullable|string',
             'status' => 'required|in:0,1',
         ]);
@@ -111,6 +125,11 @@ class AdminProductController extends Controller
         if ($validator->fails()) {
             return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
         }
+
+        $previousThumbnail = $product->thumbnail;
+        $thumbnail = $request->hasFile('thumbnail_file')
+            ? $request->file('thumbnail_file')->store('products', 'public')
+            : $request->input('thumbnail', $product->thumbnail);
 
         $product->update([
             'name' => $request->name,
@@ -120,10 +139,20 @@ class AdminProductController extends Controller
             'price' => $request->price,
             'promo_price' => $request->promo_price,
             'stock' => $request->stock,
-            'thumbnail' => $request->thumbnail,
+            'thumbnail' => $thumbnail,
             'description' => $request->description,
             'status' => $request->status,
         ]);
+
+        if (
+            $request->hasFile('thumbnail_file') &&
+            Str::startsWith($previousThumbnail ?? '', 'products/') &&
+            Storage::disk('public')->exists($previousThumbnail)
+        ) {
+            Storage::disk('public')->delete($previousThumbnail);
+        }
+
+        $product->setAttribute('thumbnail', $this->thumbnailUrl($product->thumbnail));
 
         return response()->json(['success' => true, 'message' => 'Cập nhật sản phẩm thành công', 'data' => $product], 200);
     }
@@ -141,5 +170,23 @@ class AdminProductController extends Controller
 
         $product->delete();
         return response()->json(['success' => true, 'message' => 'Xóa sản phẩm thành công'], 200);
+    }
+
+    private function thumbnailUrl(?string $thumbnail): ?string
+    {
+        if (!$thumbnail) {
+            return null;
+        }
+
+        if (Str::startsWith($thumbnail, ['http://', 'https://'])) {
+            return $thumbnail;
+        }
+
+        $path = ltrim($thumbnail, '/');
+        $url = Str::startsWith($path, 'storage/')
+            ? '/' . $path
+            : Storage::disk('public')->url($path);
+
+        return asset($url);
     }
 }
