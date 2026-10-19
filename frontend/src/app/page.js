@@ -371,7 +371,7 @@ export default function HomePage() {
                   {categoryList.slice(0, 6).map((cat) => (
                     <Link
                       key={cat.id}
-                      href={`/categories/${cat.slug || cat.id}`}
+                      href={`/products?category_id=${cat.id}`}
                       className="bg-white p-4 rounded-2xl border border-gray-100 hover:border-indigo-500 hover:shadow-md transition text-center flex flex-col items-center justify-center gap-2 group"
                     >
                       <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center text-xl font-bold group-hover:bg-indigo-600 group-hover:text-white transition shadow-sm">

@@ -20,6 +20,15 @@ export default function ProductsPage() {
   const [priceRange, setPriceRange] = useState("all");
   const [sortBy, setSortBy] = useState("latest");
 
+  useEffect(() => {
+    queueMicrotask(() => {
+      const categoryId = new URLSearchParams(window.location.search).get(
+        "category_id",
+      );
+      if (categoryId) setSelectedCategory(categoryId);
+    });
+  }, []);
+
   // State Phân trang
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
