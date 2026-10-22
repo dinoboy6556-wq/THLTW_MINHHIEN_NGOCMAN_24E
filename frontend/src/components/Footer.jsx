@@ -15,6 +15,7 @@ export default function Footer() {
           <h4 className="text-white font-semibold mb-3">Liên kết nhanh</h4>
           <ul className="space-y-2">
             <li><Link href="/products" className="hover:text-white transition">Tất cả sản phẩm</Link></li>
+            <li><Link href="/posts" className="hover:text-white transition">Bài viết công nghệ</Link></li>
             <li><Link href="/categories" className="hover:text-white transition">Danh mục nổi bật</Link></li>
             <li><Link href="/cart" className="hover:text-white transition">Giỏ hàng của bạn</Link></li>
           </ul>
