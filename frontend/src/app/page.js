@@ -6,6 +6,8 @@ import productService from "@/services/productService";
 import categoryService from "@/services/categoryService";
 import brandService from "@/services/brandService";
 import { getErrorMessage } from "@/lib/axios";
+import ArticleCard from "@/components/ArticleCard";
+import { articles } from "@/data/articles";
 
 // Hàm tự động gán Icon Emoji sinh động theo tên Danh Mục
 const getCategoryIcon = (catName = "") => {
@@ -371,7 +373,7 @@ export default function HomePage() {
                   {categoryList.slice(0, 6).map((cat) => (
                     <Link
                       key={cat.id}
-                      href={`/categories/${cat.slug || cat.id}`}
+                      href={`/products?category_id=${cat.id}`}
                       className="bg-white p-4 rounded-2xl border border-gray-100 hover:border-indigo-500 hover:shadow-md transition text-center flex flex-col items-center justify-center gap-2 group"
                     >
                       <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center text-xl font-bold group-hover:bg-indigo-600 group-hover:text-white transition shadow-sm">
@@ -508,6 +510,30 @@ export default function HomePage() {
                   ))}
                 </div>
               )}
+            </section>
+
+            <section className="flex flex-col gap-6">
+              <div className="flex items-end justify-between border-b pb-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-800">
+                    Góc Công Nghệ
+                  </h2>
+                  <p className="text-sm text-gray-500">
+                    Tin tức và kinh nghiệm chọn thiết bị mới nhất
+                  </p>
+                </div>
+                <Link
+                  href="/posts"
+                  className="text-sm font-semibold text-indigo-600 hover:underline"
+                >
+                  Xem tất cả bài viết →
+                </Link>
+              </div>
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {articles.slice(0, 3).map((article) => (
+                  <ArticleCard key={article.slug} article={article} />
+                ))}
+              </div>
             </section>
           </>
         )}
