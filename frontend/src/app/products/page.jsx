@@ -22,10 +22,11 @@ export default function ProductsPage() {
 
   useEffect(() => {
     queueMicrotask(() => {
-      const categoryId = new URLSearchParams(window.location.search).get(
-        "category_id",
-      );
+      const searchParams = new URLSearchParams(window.location.search);
+      const categoryId = searchParams.get("category_id");
+      const brandId = searchParams.get("brand_id");
       if (categoryId) setSelectedCategory(categoryId);
+      if (brandId) setSelectedBrand(brandId);
     });
   }, []);
 

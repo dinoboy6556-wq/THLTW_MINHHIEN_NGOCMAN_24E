@@ -7,6 +7,7 @@ import categoryService from "@/services/categoryService";
 import brandService from "@/services/brandService";
 import { getErrorMessage } from "@/lib/axios";
 import ArticleCard from "@/components/ArticleCard";
+import BrandLogo from "@/components/BrandLogo";
 import { articles } from "@/data/articles";
 
 // Hàm tự động gán Icon Emoji sinh động theo tên Danh Mục
@@ -490,22 +491,13 @@ export default function HomePage() {
                       key={brand.id}
                       className="bg-white p-4 rounded-xl border border-gray-100 flex items-center justify-center h-16 hover:shadow-sm transition"
                     >
-                      {brand.logo ? (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img
-                          src={brand.logo}
-                          alt={brand.name}
-                          className="max-h-8 max-w-full object-contain grayscale hover:grayscale-0 transition"
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.style.display = "none";
-                          }}
-                        />
-                      ) : (
-                        <span className="font-bold text-gray-600 text-sm">
-                          {brand.name}
-                        </span>
-                      )}
+                      <BrandLogo
+                        name={brand.name}
+                        src={brand.logo}
+                        className="flex items-center justify-center"
+                        imageClassName="max-h-8 max-w-full object-contain grayscale transition hover:grayscale-0"
+                        fallbackClassName="text-sm font-bold text-gray-600"
+                      />
                     </div>
                   ))}
                 </div>

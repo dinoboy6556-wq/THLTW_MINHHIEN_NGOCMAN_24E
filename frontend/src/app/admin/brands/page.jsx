@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import brandService from "@/services/brandService";
 import { getErrorMessage } from "@/lib/axios";
+import BrandLogo from "@/components/BrandLogo";
 
 export default function AdminBrandPage() {
   const [brands, setBrands] = useState([]);
@@ -318,22 +319,13 @@ export default function AdminBrandPage() {
                           {brand.id}
                         </td>
                         <td className="p-4">
-                          {brand.logo ? (
-                            /* eslint-disable-next-line @next/next/no-img-element */
-                            <img
-                              src={brand.logo}
-                              alt={brand.name}
-                              className="h-8 w-16 object-contain rounded border border-gray-100 bg-white"
-                              onError={(e) => {
-                                e.target.onerror = null;
-                                e.target.style.display = "none";
-                              }}
-                            />
-                          ) : (
-                            <span className="text-xs text-gray-400 italic">
-                              Chưa có
-                            </span>
-                          )}
+                          <BrandLogo
+                            name={brand.name}
+                            src={brand.logo}
+                            className="flex h-8 w-16 items-center justify-center rounded border border-gray-100 bg-white"
+                            imageClassName="h-8 w-16 rounded object-contain"
+                            fallbackClassName="truncate px-1 text-center text-[10px] font-bold text-indigo-700"
+                          />
                         </td>
                         <td className="p-4 text-gray-800 font-medium">
                           <div>{brand.name}</div>
