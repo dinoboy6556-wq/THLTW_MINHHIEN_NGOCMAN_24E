@@ -5,11 +5,18 @@ export default function ArticleCard({ article }) {
     <article className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
       <Link href={`/posts/${article.slug}`} className="block">
         <div
-          className={`flex h-48 items-center justify-center bg-gradient-to-br ${article.coverClass}`}
+          className={`flex h-48 items-center justify-center bg-gradient-to-br ${article.coverClass || "from-indigo-500 to-blue-400"}`}
+          style={
+            article.coverImage
+              ? { backgroundImage: `url("${article.coverImage}")`, backgroundSize: "cover", backgroundPosition: "center" }
+              : undefined
+          }
         >
-          <span className="text-7xl drop-shadow-lg" aria-hidden="true">
-            {article.icon}
-          </span>
+          {!article.coverImage && (
+            <span className="text-7xl drop-shadow-lg" aria-hidden="true">
+              {article.icon || "📝"}
+            </span>
+          )}
         </div>
         <div className="p-5">
           <div className="mb-3 flex items-center justify-between gap-3 text-xs">

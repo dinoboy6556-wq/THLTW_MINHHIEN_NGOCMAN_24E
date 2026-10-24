@@ -1,8 +1,42 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import ArticleCard from "@/components/ArticleCard";
-import { articles } from "@/data/articles";
+import { articles as featuredArticles, mapPostToArticle } from "@/data/articles";
+import postService from "@/services/postService";
 
 export default function PostsPage() {
+  const [articles, setArticles] = useState(featuredArticles);
+  const [apiError, setApiError] = useState("");
+
+  useEffect(() => {
+    let isMounted = true;
+
+    postService
+      .getPublished()
+      .then((response) => {
+        if (!isMounted) return;
+
+        const publishedPosts = (response.data?.data || []).map(mapPostToArticle);
+        const staticSlugs = new Set(publishedPosts.map((post) => post.slug));
+        setArticles([
+          ...publishedPosts,
+          ...featuredArticles.filter((article) => !staticSlugs.has(article.slug)),
+        ]);
+      })
+      .catch((error) => {
+        console.error("Lỗi tải bài viết:", error);
+        if (isMounted) {
+          setApiError("Không thể tải các bài viết mới từ máy chủ.");
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   return (
     <main className="min-h-screen bg-gray-50 px-4 py-10 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
@@ -26,6 +60,12 @@ export default function PostsPage() {
             tin công nghệ hữu ích dành cho bạn.
           </p>
         </header>
+
+        {apiError && (
+          <p className="mb-5 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            {apiError} Các bài viết có sẵn vẫn được hiển thị bên dưới.
+          </p>
+        )}
 
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-xl font-bold text-gray-900">
