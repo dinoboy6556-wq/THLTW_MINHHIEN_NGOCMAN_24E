@@ -8,7 +8,8 @@ import brandService from "@/services/brandService";
 import { getErrorMessage } from "@/lib/axios";
 import ArticleCard from "@/components/ArticleCard";
 import BrandLogo from "@/components/BrandLogo";
-import { articles } from "@/data/articles";
+import { mapPostToArticle } from "@/data/articles";
+import postService from "@/services/postService";
 
 // Hàm tự động gán Icon Emoji sinh động theo tên Danh Mục
 const getCategoryIcon = (catName = "") => {
@@ -31,6 +32,7 @@ export default function HomePage() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
+  const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -71,6 +73,17 @@ export default function HomePage() {
     queueMicrotask(() => {
       fetchHomeData();
     });
+
+    postService
+      .getPublished()
+      .then((response) => {
+        if (isMounted) {
+          setArticles((response.data?.data || []).map(mapPostToArticle));
+        }
+      })
+      .catch((err) => {
+        console.error("Lỗi tải bài viết trang chủ:", getErrorMessage(err));
+      });
 
     return () => {
       isMounted = false;

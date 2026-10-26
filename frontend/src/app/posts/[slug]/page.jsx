@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { getArticleBySlug, mapPostToArticle } from "@/data/articles";
+import { mapPostToArticle } from "@/data/articles";
 import postService from "@/services/postService";
 
 export default function PostDetailPage() {
@@ -12,19 +12,12 @@ export default function PostDetailPage() {
 }
 
 function PostDetail({ slug }) {
-  const [article, setArticle] = useState(() => getArticleBySlug(slug) || null);
-  const [loading, setLoading] = useState(() => !getArticleBySlug(slug));
+  const [article, setArticle] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
-    const existingArticle = getArticleBySlug(slug);
-
-    if (existingArticle) {
-      return () => {
-        isMounted = false;
-      };
-    }
 
     postService
       .getPublishedBySlug(slug)
