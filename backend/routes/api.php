@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Api\Admin\UserController;
 use App\Http\Controllers\Api\PostController;
+use App\Http\Controllers\Api\ProductReviewController;
 
 
 
@@ -38,6 +39,7 @@ Route::get('/brands/{slug}', [BrandController::class, 'show']);
 
 // API Sản phẩm
 Route::get('/products', [ProductController::class, 'index']);
+Route::get('/products/{product}/reviews', [ProductReviewController::class, 'index']);
 Route::get('/products/{slug}', [ProductController::class, 'show']);
 Route::get('/posts', [PostController::class, 'index']);
 Route::get('/posts/{slug}', [PostController::class, 'show']);
@@ -65,6 +67,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/my-orders', [OrderHistoryController::class, 'index']);
+    Route::post('/products/{product}/reviews', [ProductReviewController::class, 'store']);
 });
 
 

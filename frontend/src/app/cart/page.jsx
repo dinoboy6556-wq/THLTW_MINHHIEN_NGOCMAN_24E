@@ -4,6 +4,54 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import api, { getErrorMessage } from "@/lib/axios";
 
+const formatMoney = (amount) => `${Number(amount || 0).toLocaleString("vi-VN")} đ`;
+// Hướng dẫn chuyển khoản MoMo
+function BankTransferInstructions({ amount, orderCode }) {
+  return (
+    <div className="mt-4 rounded-xl border border-indigo-100 bg-indigo-50/60 p-4 sm:p-5">
+      <div className="grid gap-5 sm:grid-cols-[180px_1fr] sm:items-center">
+        <div className="mx-auto w-full max-w-44 rounded-lg border border-gray-200 bg-white p-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/payment/momo-receive-qr.png"
+            alt="Mã QR nhận tiền MoMo"
+            className="h-auto w-full"
+          />
+        </div>
+        <div className="text-sm text-gray-700">
+          <h3 className="font-bold text-gray-900">Thông tin chuyển khoản MoMo</h3>
+          <dl className="mt-3 grid gap-2">
+            <div className="flex flex-wrap justify-between gap-x-4">
+              <dt className="text-gray-500">Người nhận</dt>
+              <dd className="font-semibold">NGUYEN NGOC MAN</dd>
+            </div>
+            <div className="flex flex-wrap justify-between gap-x-4">
+              <dt className="text-gray-500">Số tài khoản</dt>
+              <dd className="font-semibold">PSP2618416100000097</dd>
+            </div>
+            <div className="flex flex-wrap justify-between gap-x-4">
+              <dt className="text-gray-500">Số tiền</dt>
+              <dd className="font-bold text-indigo-700">{formatMoney(amount)}</dd>
+            </div>
+            {orderCode && (
+              <div className="flex flex-wrap justify-between gap-x-4">
+                <dt className="text-gray-500">Nội dung chuyển khoản</dt>
+                <dd className="font-bold text-gray-900">{orderCode}</dd>
+              </div>
+            )}
+          </dl>
+          <p className="mt-3 text-xs leading-5 text-gray-600">
+            Quét mã bằng ứng dụng MoMo, kiểm tra đúng người nhận và số tiền trước khi chuyển.
+            {orderCode
+              ? " Đơn hàng sẽ được xác nhận sau khi cửa hàng kiểm tra giao dịch."
+              : " Sau khi đặt hàng, dùng mã đơn hàng làm nội dung chuyển khoản. Đơn hàng chưa được ghi nhận là đã thanh toán."}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function CartPage() {
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -180,11 +228,16 @@ export default function CartPage() {
             <p className="mt-1 text-sm text-gray-600">
               Tổng thanh toán: <strong>{Number(orderComplete.total_amount).toLocaleString("vi-VN")} đ</strong>
             </p>
-            <p className="mt-3 text-sm text-gray-500">
-              {orderComplete.payment_method === "bank_transfer"
-                ? "Đơn hàng đang chờ xác nhận. Cửa hàng sẽ liên hệ hướng dẫn chuyển khoản; chưa ghi nhận đã thanh toán."
-                : "Đơn hàng đang chờ xác nhận. Bạn thanh toán khi nhận hàng."}
-            </p>
+            {orderComplete.payment_method === "bank_transfer" ? (
+              <BankTransferInstructions
+                amount={orderComplete.total_amount}
+                orderCode={orderComplete.order_code}
+              />
+            ) : (
+              <p className="mt-3 text-sm text-gray-500">
+                Đơn hàng đang chờ xác nhận. Bạn thanh toán khi nhận hàng.
+              </p>
+            )}
             <Link
               href="/products"
               className="mt-6 inline-flex rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700"
@@ -566,10 +619,13 @@ export default function CartPage() {
                     />
                     <span>
                       <span className="block text-sm font-semibold text-gray-800">Chuyển khoản</span>
-                      <span className="mt-1 block text-xs text-gray-500">Cửa hàng sẽ liên hệ hướng dẫn sau khi xác nhận.</span>
+                      <span className="mt-1 block text-xs text-gray-500">Quét mã MoMo để chuyển khoản.</span>
                     </span>
                   </label>
                 </div>
+                {paymentMethod === "bank_transfer" && (
+                  <BankTransferInstructions amount={total} />
+                )}
               </fieldset>
 
               {checkoutError && (

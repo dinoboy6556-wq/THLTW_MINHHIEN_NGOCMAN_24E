@@ -29,8 +29,12 @@ export default function RegisterPage() {
       localStorage.setItem("access_token", data.access_token);
       localStorage.setItem("user_info", JSON.stringify(data.user));
 
-      const returnToCart = new URLSearchParams(window.location.search).get("redirect") === "/cart";
-      router.push(returnToCart ? "/cart" : "/");
+      const redirect = new URLSearchParams(window.location.search).get("redirect");
+      const returnPath =
+        redirect?.startsWith("/") && !redirect.startsWith("//")
+          ? redirect
+          : "/";
+      router.push(returnPath);
     } catch (requestError) {
       const validationErrors = requestError.response?.data?.errors;
       setError(
@@ -136,9 +140,10 @@ export default function RegisterPage() {
           <Link
             href="/login"
             onClick={(event) => {
-              if (new URLSearchParams(window.location.search).get("redirect") === "/cart") {
+              const redirect = new URLSearchParams(window.location.search).get("redirect");
+              if (redirect?.startsWith("/") && !redirect.startsWith("//")) {
                 event.preventDefault();
-                router.push("/login?redirect=/cart");
+                router.push(`/login?redirect=${encodeURIComponent(redirect)}`);
               }
             }}
             className="font-semibold text-indigo-600 hover:text-indigo-800"
