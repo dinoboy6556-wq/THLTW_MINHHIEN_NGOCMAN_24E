@@ -4,6 +4,9 @@ const productService = {
   // Dành cho Trang chủ & Cửa hàng (Public - Không bị dính 403)
   getAll: () => api.get('/products'),
   getById: (id) => api.get(`/products/${id}`),
+  getReviews: (productId) => api.get(`/products/${productId}/reviews`),
+  submitReview: (productId, data) =>
+    api.post(`/products/${productId}/reviews`, data),
 
   // Dành riêng cho trang Admin Dashboard
   getAdminAll: () => api.get('/admin/products'),

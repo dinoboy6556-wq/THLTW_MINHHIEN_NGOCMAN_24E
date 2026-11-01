@@ -76,6 +76,7 @@ export default function Header() {
         <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-700">
           <Link href="/" className="hover:text-indigo-600 transition">Trang chủ</Link>
           <Link href="/products" className="hover:text-indigo-600 transition">Sản phẩm</Link>
+          <Link href="/posts" className="hover:text-indigo-600 transition">Bài viết</Link>
           <Link href="/categories" className="hover:text-indigo-600 transition">Danh mục</Link>
           <Link href="/brands" className="hover:text-indigo-600 transition">Thương hiệu</Link>
         </nav>

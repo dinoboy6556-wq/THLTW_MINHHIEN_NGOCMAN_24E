@@ -20,6 +20,16 @@ export default function ProductsPage() {
   const [priceRange, setPriceRange] = useState("all");
   const [sortBy, setSortBy] = useState("latest");
 
+  useEffect(() => {
+    queueMicrotask(() => {
+      const searchParams = new URLSearchParams(window.location.search);
+      const categoryId = searchParams.get("category_id");
+      const brandId = searchParams.get("brand_id");
+      if (categoryId) setSelectedCategory(categoryId);
+      if (brandId) setSelectedBrand(brandId);
+    });
+  }, []);
+
   // State Phân trang
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;

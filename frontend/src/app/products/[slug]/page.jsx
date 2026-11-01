@@ -16,6 +16,15 @@ export default function ProductDetailPage() {
   const [error, setError] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
+  const [reviews, setReviews] = useState([]);
+  const [reviewSummary, setReviewSummary] = useState({ average: 0, count: 0 });
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState("");
+  const [reviewLoading, setReviewLoading] = useState(true);
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewError, setReviewError] = useState("");
+  const [reviewMessage, setReviewMessage] = useState("");
+  const [requiresLogin, setRequiresLogin] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -44,9 +53,73 @@ export default function ProductDetailPage() {
     };
   }, [slug]);
 
+  useEffect(() => {
+    if (!product?.id) return;
+
+    let isMounted = true;
+
+    productService
+      .getReviews(product.id)
+      .then((response) => {
+        if (!isMounted) return;
+        setReviews(response.data?.data?.data || []);
+        setReviewSummary(response.data?.summary || { average: 0, count: 0 });
+      })
+      .catch((requestError) => {
+        console.error(
+          "Lỗi tải đánh giá sản phẩm:",
+          getErrorMessage(requestError),
+        );
+        if (isMounted) {
+          setReviewError("Không thể tải đánh giá sản phẩm.");
+        }
+      })
+      .finally(() => {
+        if (isMounted) setReviewLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [product?.id]);
+
   const handleAddToCart = () => {
     if (addToCart(product, quantity)) {
       setAdded(true);
+    }
+  };
+
+  const handleSubmitReview = async (event) => {
+    event.preventDefault();
+    setReviewError("");
+    setReviewMessage("");
+
+    if (!localStorage.getItem("access_token")) {
+      setRequiresLogin(true);
+      setReviewError("Vui lòng đăng nhập để gửi đánh giá.");
+      return;
+    }
+
+    setRequiresLogin(false);
+    setReviewSubmitting(true);
+    try {
+      await productService.submitReview(product.id, {
+        rating: reviewRating,
+        comment: reviewComment.trim(),
+      });
+      const response = await productService.getReviews(product.id);
+      setReviews(response.data?.data?.data || []);
+      setReviewSummary(response.data?.summary || { average: 0, count: 0 });
+      setReviewComment("");
+      setReviewMessage("Đánh giá của bạn đã được lưu.");
+    } catch (requestError) {
+      console.error(
+        "Lỗi gửi đánh giá sản phẩm:",
+        getErrorMessage(requestError),
+      );
+      setReviewError(getErrorMessage(requestError));
+    } finally {
+      setReviewSubmitting(false);
     }
   };
 
@@ -124,6 +197,18 @@ export default function ProductDetailPage() {
             <p className="mt-2 text-sm text-gray-400">
               Mã sản phẩm: {product.slug}
             </p>
+            <div className="mt-3 flex items-center gap-2 text-sm">
+              <span className="text-amber-500" aria-label={`${reviewSummary.average} trên 5 sao`}>
+                {"★".repeat(Math.round(reviewSummary.average))}
+                {"☆".repeat(5 - Math.round(reviewSummary.average))}
+              </span>
+              <span className="font-semibold text-gray-700">
+                {reviewSummary.average.toFixed(1)}
+              </span>
+              <span className="text-gray-500">
+                ({reviewSummary.count} đánh giá)
+              </span>
+            </div>
 
             <div className="mt-6 border-y border-gray-100 py-5">
               {hasDiscount ? (
@@ -209,6 +294,136 @@ export default function ProductDetailPage() {
                 </p>
               )}
             </div>
+          </div>
+        </section>
+
+        <section className="mt-10 rounded-xl border border-gray-200 bg-white p-6 sm:p-8">
+          <div className="flex flex-wrap items-end justify-between gap-3 border-b border-gray-100 pb-5">
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">
+                Đánh giá sản phẩm
+              </h2>
+              <p className="mt-1 text-sm text-gray-500">
+                {reviewSummary.count
+                  ? `${reviewSummary.average.toFixed(1)}/5 từ ${reviewSummary.count} đánh giá`
+                  : "Chưa có đánh giá. Hãy chia sẻ cảm nhận đầu tiên của bạn."}
+              </p>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmitReview} className="mt-6 max-w-2xl">
+            <fieldset>
+              <legend className="text-sm font-semibold text-gray-800">
+                Mức đánh giá
+              </legend>
+              <div className="mt-2 flex gap-1" role="radiogroup" aria-label="Chọn số sao">
+                {[1, 2, 3, 4, 5].map((rating) => (
+                  <button
+                    key={rating}
+                    type="button"
+                    role="radio"
+                    aria-checked={reviewRating === rating}
+                    aria-label={`${rating} sao`}
+                    onClick={() => setReviewRating(rating)}
+                    className={`text-3xl transition ${
+                      rating <= reviewRating
+                        ? "text-amber-400"
+                        : "text-gray-300"
+                    }`}
+                  >
+                    ★
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+            <label className="mt-4 block text-sm font-semibold text-gray-800">
+              Nhận xét của bạn
+              <textarea
+                required
+                maxLength={1000}
+                rows={4}
+                value={reviewComment}
+                onChange={(event) => setReviewComment(event.target.value)}
+                placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm..."
+                className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </label>
+            {reviewError && (
+              <p className="mt-3 text-sm text-red-600" role="alert">
+                {reviewError}
+                {requiresLogin && (
+                  <>
+                    {" "}
+                    <Link
+                      href={`/login?redirect=${encodeURIComponent(`/products/${product.slug}`)}`}
+                      className="font-semibold underline"
+                    >
+                      Đăng nhập
+                    </Link>
+                    {" hoặc "}
+                    <Link
+                      href={`/register?redirect=${encodeURIComponent(`/products/${product.slug}`)}`}
+                      className="font-semibold underline"
+                    >
+                      đăng ký
+                    </Link>
+                  </>
+                )}
+              </p>
+            )}
+            {reviewMessage && (
+              <p className="mt-3 text-sm text-emerald-700" role="status">
+                {reviewMessage}
+              </p>
+            )}
+            <button
+              type="submit"
+              disabled={reviewSubmitting}
+              className="mt-4 rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-wait disabled:opacity-60"
+            >
+              {reviewSubmitting ? "Đang gửi..." : "Gửi đánh giá"}
+            </button>
+          </form>
+
+          <div className="mt-8 border-t border-gray-100 pt-6">
+            {reviewLoading ? (
+              <p className="text-sm text-gray-500">Đang tải đánh giá...</p>
+            ) : reviews.length ? (
+              <div className="space-y-5">
+                {reviews.map((review) => (
+                  <article key={review.id} className="border-b border-gray-100 pb-5 last:border-0">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="font-semibold text-gray-800">
+                        {review.user?.username || "Khách hàng"}
+                      </p>
+                      <time className="text-xs text-gray-500">
+                        {review.created_at
+                          ? new Intl.DateTimeFormat("vi-VN", {
+                              dateStyle: "medium",
+                            }).format(new Date(review.created_at))
+                          : ""}
+                      </time>
+                    </div>
+                    <p
+                      className="mt-1 text-sm text-amber-500"
+                      aria-label={`${review.rating} sao`}
+                    >
+                      {"★".repeat(review.rating)}
+                      {"☆".repeat(5 - review.rating)}
+                    </p>
+                    <p className="mt-2 whitespace-pre-line text-sm leading-6 text-gray-600">
+                      {review.comment}
+                    </p>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              !reviewError && (
+                <p className="text-sm text-gray-500">
+                  Chưa có đánh giá cho sản phẩm này.
+                </p>
+              )
+            )}
           </div>
         </section>
       </div>
