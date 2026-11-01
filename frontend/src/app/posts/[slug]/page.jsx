@@ -1,16 +1,68 @@
-import Link from "next/link";
-import { notFound } from "next/navigation";
-import { articles, getArticleBySlug } from "@/data/articles";
+"use client";
 
-export function generateStaticParams() {
-  return articles.map((article) => ({ slug: article.slug }));
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { mapPostToArticle } from "@/data/articles";
+import postService from "@/services/postService";
+
+export default function PostDetailPage() {
+  const { slug } = useParams();
+  return <PostDetail key={slug} slug={slug} />;
 }
 
-export default async function PostDetailPage({ params }) {
-  const { slug } = await params;
-  const article = getArticleBySlug(slug);
+function PostDetail({ slug }) {
+  const [article, setArticle] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
-  if (!article) notFound();
+  useEffect(() => {
+    let isMounted = true;
+
+    postService
+      .getPublishedBySlug(slug)
+      .then((response) => {
+        if (isMounted) {
+          setArticle(mapPostToArticle(response.data.data));
+        }
+      })
+      .catch((error) => {
+        console.error("Lỗi tải bài viết:", error);
+        if (isMounted) {
+          setNotFound(true);
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [slug]);
+
+  if (loading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center text-gray-500">
+        Đang tải bài viết...
+      </main>
+    );
+  }
+
+  if (notFound || !article) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-gray-50 px-4 text-center">
+        <h1 className="text-2xl font-bold text-gray-800">
+          Không tìm thấy bài viết
+        </h1>
+        <Link href="/posts" className="font-semibold text-indigo-600">
+          Quay lại danh sách bài viết
+        </Link>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-gray-50 px-4 py-8 sm:px-6 lg:px-8">
@@ -29,11 +81,18 @@ export default async function PostDetailPage({ params }) {
 
         <header className="overflow-hidden rounded-3xl bg-white shadow-sm">
           <div
-            className={`flex h-56 items-center justify-center bg-gradient-to-br sm:h-80 ${article.coverClass}`}
+            className={`flex h-56 items-center justify-center bg-gradient-to-br sm:h-80 ${article.coverClass || "from-indigo-500 to-blue-400"}`}
+            style={
+              article.coverImage
+                ? { backgroundImage: `url("${article.coverImage}")`, backgroundSize: "cover", backgroundPosition: "center" }
+                : undefined
+            }
           >
-            <span className="text-8xl drop-shadow-lg" aria-hidden="true">
-              {article.icon}
-            </span>
+            {!article.coverImage && (
+              <span className="text-8xl drop-shadow-lg" aria-hidden="true">
+                {article.icon || "📝"}
+              </span>
+            )}
           </div>
           <div className="px-6 py-8 sm:px-10 sm:py-10">
             <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
@@ -54,18 +113,30 @@ export default async function PostDetailPage({ params }) {
 
         <div className="mt-8 rounded-3xl bg-white px-6 py-8 shadow-sm sm:px-10 sm:py-10">
           <div className="space-y-8">
-            {article.sections.map((section) => (
-              <section key={section.heading}>
-                <h2 className="text-xl font-bold text-gray-900">
-                  {section.heading}
-                </h2>
-                <div className="mt-3 space-y-4 text-base leading-8 text-gray-700">
-                  {section.paragraphs.map((paragraph) => (
-                    <p key={paragraph}>{paragraph}</p>
+            {article.sections
+              ? article.sections.map((section) => (
+                  <section key={section.heading}>
+                    <h2 className="text-xl font-bold text-gray-900">
+                      {section.heading}
+                    </h2>
+                    <div className="mt-3 space-y-4 text-base leading-8 text-gray-700">
+                      {section.paragraphs.map((paragraph) => (
+                        <p key={paragraph}>{paragraph}</p>
+                      ))}
+                    </div>
+                  </section>
+                ))
+              : article.content
+                  ?.split(/\n\s*\n/)
+                  .filter(Boolean)
+                  .map((paragraph, index) => (
+                    <p
+                      key={index}
+                      className="whitespace-pre-line text-base leading-8 text-gray-700"
+                    >
+                      {paragraph}
+                    </p>
                   ))}
-                </div>
-              </section>
-            ))}
           </div>
           <div className="mt-10 border-t border-gray-100 pt-6">
             <Link

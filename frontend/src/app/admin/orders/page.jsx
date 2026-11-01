@@ -267,6 +267,24 @@ export default function AdminOrderPage() {
                       </td>
                       <td className="p-4 text-center">
                         <div className="flex items-center justify-center gap-2">
+                          {Number(order.status) === 0 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (
+                                  confirm(
+                                    `Xác nhận đơn hàng #${order.id}?`,
+                                  )
+                                ) {
+                                  handleStatusChange(order.id, 1);
+                                }
+                              }}
+                              disabled={updatingStatus}
+                              className="bg-blue-50 text-blue-600 hover:bg-blue-100 px-3 py-1 rounded-md text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              Xác nhận
+                            </button>
+                          )}
                           <button
                             onClick={() => handleViewDetails(order)}
                             className="bg-indigo-50 text-indigo-600 hover:bg-indigo-100 px-3 py-1 rounded-md text-xs font-semibold transition"

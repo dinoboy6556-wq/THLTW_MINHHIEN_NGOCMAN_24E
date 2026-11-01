@@ -1,8 +1,43 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import ArticleCard from "@/components/ArticleCard";
-import { articles } from "@/data/articles";
+import { mapPostToArticle } from "@/data/articles";
+import postService from "@/services/postService";
 
 export default function PostsPage() {
+  const [articles, setArticles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState("");
+
+  useEffect(() => {
+    let isMounted = true;
+
+    postService
+      .getPublished()
+      .then((response) => {
+        if (!isMounted) return;
+
+        setArticles((response.data?.data || []).map(mapPostToArticle));
+      })
+      .catch((error) => {
+        console.error("Lỗi tải bài viết:", error);
+        if (isMounted) {
+          setApiError("Không thể tải bài viết từ máy chủ.");
+        }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   return (
     <main className="min-h-screen bg-gray-50 px-4 py-10 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
@@ -27,6 +62,12 @@ export default function PostsPage() {
           </p>
         </header>
 
+        {apiError && (
+          <p className="mb-5 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            {apiError}
+          </p>
+        )}
+
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-xl font-bold text-gray-900">
             Bài viết mới nhất
@@ -36,11 +77,23 @@ export default function PostsPage() {
           </span>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {articles.map((article) => (
-            <ArticleCard key={article.slug} article={article} />
-          ))}
-        </div>
+        {loading ? (
+          <p className="rounded-xl bg-white p-8 text-center text-sm text-gray-500">
+            Đang tải bài viết...
+          </p>
+        ) : articles.length > 0 ? (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {articles.map((article) => (
+              <ArticleCard key={article.slug} article={article} />
+            ))}
+          </div>
+        ) : (
+          !apiError && (
+            <p className="rounded-xl bg-white p-8 text-center text-sm text-gray-500">
+              Hiện chưa có bài viết được xuất bản.
+            </p>
+          )
+        )}
       </div>
     </main>
   );

@@ -16,6 +16,8 @@ use App\Http\Controllers\Api\Admin\AdminProductController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Api\Admin\UserController;
+use App\Http\Controllers\Api\PostController;
+use App\Http\Controllers\Api\ProductReviewController;
 
 
 
@@ -37,7 +39,10 @@ Route::get('/brands/{slug}', [BrandController::class, 'show']);
 
 // API Sản phẩm
 Route::get('/products', [ProductController::class, 'index']);
+Route::get('/products/{product}/reviews', [ProductReviewController::class, 'index']);
 Route::get('/products/{slug}', [ProductController::class, 'show']);
+Route::get('/posts', [PostController::class, 'index']);
+Route::get('/posts/{slug}', [PostController::class, 'show']);
 
 Route::get('/products', [ProductController::class, 'index']);
 Route::get('/products/{id}', [ProductController::class, 'show']);
@@ -62,6 +67,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/me', [AuthController::class, 'me']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/my-orders', [OrderHistoryController::class, 'index']);
+    Route::post('/products/{product}/reviews', [ProductReviewController::class, 'store']);
 });
 
 
@@ -79,6 +85,8 @@ Route::middleware(['auth:sanctum', CheckAdmin::class])->prefix('admin')->group(f
 
     // Quản lý Sản phẩm (FUNC-ADM-PROD-01..04)
     Route::apiResource('products', AdminProductController::class);
+    Route::apiResource('posts', \App\Http\Controllers\Api\Admin\AdminPostController::class)
+        ->only(['index', 'store', 'update', 'destroy']);
 });
 
 // 1. Route Khách hàng (Đặt hàng từ Giỏ hàng)

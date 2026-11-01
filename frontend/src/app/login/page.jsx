@@ -37,8 +37,12 @@ export default function LoginPage() {
         if (data.user.role === 'admin') {
           router.push('/admin');
         } else {
-          const returnToCart = new URLSearchParams(window.location.search).get('redirect') === '/cart';
-          router.push(returnToCart ? '/cart' : '/');
+          const redirect = new URLSearchParams(window.location.search).get('redirect');
+          const returnPath =
+            redirect?.startsWith('/') && !redirect.startsWith('//')
+              ? redirect
+              : '/';
+          router.push(returnPath);
         }
       } else {
         setError(data.message || 'Đăng nhập thất bại, vui lòng kiểm tra lại!');
@@ -101,9 +105,10 @@ export default function LoginPage() {
           <Link
             href="/register"
             onClick={(event) => {
-              if (new URLSearchParams(window.location.search).get('redirect') === '/cart') {
+              const redirect = new URLSearchParams(window.location.search).get('redirect');
+              if (redirect?.startsWith('/') && !redirect.startsWith('//')) {
                 event.preventDefault();
-                router.push('/register?redirect=/cart');
+                router.push(`/register?redirect=${encodeURIComponent(redirect)}`);
               }
             }}
             className="font-semibold text-indigo-600 hover:text-indigo-800"

@@ -11,6 +11,7 @@ export default function AdminSidebar({ onLogout }) {
     { name: "Quản lý Danh mục", path: "/admin/categories", icon: "📁" },
     { name: "Quản lý Thương hiệu", path: "/admin/brands", icon: "🏷️" },
     { name: "Quản lý Sản phẩm", path: "/admin/products", icon: "📦" },
+    { name: "Quản lý Bài viết", path: "/admin/posts", icon: "📝" },
     { name: "Quản lý Đơn hàng", path: "/admin/orders", icon: "🛒" },
     { name: "Quản lý Người dùng", path: "/admin/users", icon: "👥" }, // Thêm mục Quản lý Người dùng
   ];
