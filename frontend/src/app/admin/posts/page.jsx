@@ -22,6 +22,8 @@ export default function AdminPostsPage() {
   const [apiError, setApiError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [coverImageFile, setCoverImageFile] = useState(null);
+  const [coverImagePreview, setCoverImagePreview] = useState("");
 
   const loadPosts = useCallback(async () => {
     setLoading(true);
@@ -46,10 +48,14 @@ export default function AdminPostsPage() {
   const resetForm = () => {
     setForm(emptyForm);
     setEditingId(null);
+    setCoverImageFile(null);
+    setCoverImagePreview("");
   };
 
   const handleEdit = (post) => {
     setEditingId(post.id);
+    setCoverImageFile(null);
+    setCoverImagePreview(post.cover_image || "");
     setForm({
       title: post.title || "",
       category: post.category || "",
@@ -65,11 +71,24 @@ export default function AdminPostsPage() {
     setSaving(true);
 
     try {
+      const payload = new FormData();
+      Object.entries(form).forEach(([key, value]) => {
+        if (key !== "cover_image" && value !== null && value !== undefined) {
+          payload.append(key, String(value));
+        }
+      });
+      if (coverImageFile) {
+        payload.append("cover_image_file", coverImageFile);
+      } else if (!editingId && form.cover_image) {
+        payload.append("cover_image", form.cover_image);
+      }
+
       if (editingId) {
-        await postService.update(editingId, form);
+        payload.append("_method", "PUT");
+        await postService.update(editingId, payload);
         alert("Cập nhật bài viết thành công!");
       } else {
-        await postService.create(form);
+        await postService.create(payload);
         alert("Thêm bài viết thành công!");
       }
 
@@ -219,19 +238,32 @@ export default function AdminPostsPage() {
               />
             </label>
 
-            <label className="block text-sm font-medium text-gray-700">
-              Ảnh bìa (URL)
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Ảnh bìa từ máy
+              </label>
               <input
-                type="url"
-                maxLength={2048}
-                value={form.cover_image}
-                onChange={(event) =>
-                  setForm({ ...form, cover_image: event.target.value })
-                }
-                className="mt-1 w-full rounded-lg border px-3 py-2 text-sm font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="https://example.com/image.jpg"
+                key={editingId || "new-post"}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={(event) => {
+                  const file = event.target.files?.[0] || null;
+                  setCoverImageFile(file);
+                  setCoverImagePreview(file ? URL.createObjectURL(file) : "");
+                }}
+                className="mt-1 w-full text-sm text-gray-700 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-3 file:py-2 file:font-medium file:text-indigo-700 hover:file:bg-indigo-100"
               />
-            </label>
+              <p className="mt-1 text-xs text-gray-500">
+                JPG, PNG hoặc WebP, tối đa 5 MB.
+              </p>
+              {coverImagePreview && (
+                <img
+                  src={coverImagePreview}
+                  alt="Xem trước ảnh bìa"
+                  className="mt-3 h-28 w-full rounded-lg border border-gray-200 bg-gray-50 object-cover"
+                />
+              )}
+            </div>
 
             <label className="block text-sm font-medium text-gray-700">
               Trạng thái
