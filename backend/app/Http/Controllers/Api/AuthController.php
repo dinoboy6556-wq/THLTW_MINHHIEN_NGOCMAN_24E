@@ -7,6 +7,8 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
@@ -131,6 +133,93 @@ class AuthController extends Controller
             'success' => true,
             'message' => 'Đăng xuất thành công'
         ], 200);
+    }
+
+    public function forgotPassword(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email|max:100',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Email không hợp lệ.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $email = strtolower(trim((string) $request->email));
+        $user = User::where('email', $email)->first();
+
+        if ($user) {
+            if ($user->status != 1) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Nếu email tồn tại trong hệ thống, mã xác nhận đã được gửi.',
+                ]);
+            }
+
+            $otp = (string) random_int(100000, 999999);
+            Cache::put("password-reset:$email", Hash::make($otp), now()->addMinutes(10));
+
+            Mail::raw(
+                "Xin chào {$user->username},\n\nMã xác nhận đặt lại mật khẩu MyShop của bạn là: {$otp}\n\nMã có hiệu lực trong 10 phút và không được chia sẻ với người khác.",
+                function ($message) use ($email) {
+                    $message->to($email)->subject('Ma xac nhan dat lai mat khau MyShop');
+                }
+            );
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Nếu email tồn tại trong hệ thống, mã xác nhận đã được gửi.',
+        ]);
+    }
+
+    public function resetPassword(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email|max:100',
+            'code' => 'required|digits:6',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Thông tin đặt lại mật khẩu không hợp lệ.',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $email = strtolower(trim((string) $request->email));
+        $cachedOtp = Cache::get("password-reset:$email");
+
+        if (!$cachedOtp || !Hash::check((string) $request->code, $cachedOtp)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Mã xác nhận không đúng hoặc đã hết hạn.',
+            ], 422);
+        }
+
+        $user = User::where('email', $email)->first();
+
+        if (!$user || $user->status != 1) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không thể đặt lại mật khẩu cho tài khoản này.',
+            ], 422);
+        }
+
+        $user->forceFill(['pass' => Hash::make($request->password)])->save();
+        $user->tokens()->delete();
+        Cache::forget("password-reset:$email");
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đặt lại mật khẩu thành công. Vui lòng đăng nhập lại.',
+        ]);
     }
 
     /**
