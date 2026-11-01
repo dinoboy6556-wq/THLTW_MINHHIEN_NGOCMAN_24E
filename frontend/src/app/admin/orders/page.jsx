@@ -2,14 +2,14 @@
 
 import { useState, useEffect, useCallback } from "react";
 import orderService from "@/services/orderService";
-import api, { getErrorMessage } from "@/lib/axios";
+import { getErrorMessage } from "@/lib/axios";
 
 const getProductImageUrl = (thumbnail) => {
   if (!thumbnail) return null;
   if (/^https?:\/\//i.test(thumbnail)) return thumbnail;
 
   const imagePath = thumbnail.replace(/^\/+/, "").replace(/^storage\//, "");
-  return new URL(`/storage/${imagePath}`, api.defaults.baseURL).toString();
+  return `/backend-storage/${imagePath}`;
 };
 
 export default function AdminOrderPage() {
@@ -106,11 +106,11 @@ export default function AdminOrderPage() {
 
   // Xóa đơn hàng
   const handleDeleteOrder = async (id) => {
-    if (!confirm("Bạn có chắc chắn muốn xóa đơn hàng này?")) return;
+    if (!confirm("Chuyển đơn hàng này vào thùng rác?")) return;
 
     try {
       await orderService.remove(id);
-      alert("Đã xóa đơn hàng thành công!");
+      alert("Đã chuyển đơn hàng vào thùng rác.");
       if (selectedOrder?.id === id) setIsModalOpen(false);
       loadOrders();
     } catch (err) {
@@ -292,10 +292,13 @@ export default function AdminOrderPage() {
                             Chi tiết
                           </button>
                           <button
+                            type="button"
+                            title="Chuyển vào thùng rác"
+                            aria-label="Chuyển đơn hàng vào thùng rác"
                             onClick={() => handleDeleteOrder(order.id)}
                             className="bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1 rounded-md text-xs font-semibold transition"
                           >
-                            Xóa
+                            🗑️
                           </button>
                         </div>
                       </td>
@@ -409,9 +412,11 @@ export default function AdminOrderPage() {
                   Thanh toán
                 </span>
                 <p className="text-xs text-gray-700">
-                  {selectedOrder.payment_method === "bank_transfer"
-                    ? "Chuyển khoản ngân hàng"
-                    : "Thanh toán khi nhận hàng"}
+                  {selectedOrder.payment_method === "vnpay"
+                    ? "VNPAY (chuyển khoản / QR)"
+                    : selectedOrder.payment_method === "bank_transfer"
+                      ? "Chuyển khoản ngân hàng"
+                      : "Thanh toán khi nhận hàng"}
                   {" · "}
                   {selectedOrder.payment_status === "paid"
                     ? "Đã thanh toán"

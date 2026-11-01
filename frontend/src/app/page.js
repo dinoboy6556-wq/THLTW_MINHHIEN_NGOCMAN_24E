@@ -30,6 +30,7 @@ const getCategoryIcon = (catName = "") => {
 
 export default function HomePage() {
   const [products, setProducts] = useState([]);
+  const [saleProducts, setSaleProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
   const [articles, setArticles] = useState([]);
@@ -52,14 +53,16 @@ export default function HomePage() {
 
     const fetchHomeData = async () => {
       try {
-        const [resProd, resCat, resBrand] = await Promise.all([
+        const [resProd, resSale, resCat, resBrand] = await Promise.all([
           productService.getAll(),
+          productService.getOnSale(),
           categoryService.getAll(),
           brandService.getAll(),
         ]);
 
         if (isMounted) {
           setProducts(extractArray(resProd.data));
+          setSaleProducts(extractArray(resSale.data));
           setCategories(extractArray(resCat.data));
           setBrands(extractArray(resBrand.data));
         }
@@ -109,14 +112,6 @@ export default function HomePage() {
       p.name?.toLowerCase().includes(searchTerm.toLowerCase().trim()) ||
       p.description?.toLowerCase().includes(searchTerm.toLowerCase().trim()),
   );
-
-  // 2. Danh sách Sản Phẩm Sale (Đọc trường sale_price từ API)
-  const saleProducts = activeProducts.filter((p) => {
-    const salePrice = p.sale_price ?? p.promo_price;
-    return (
-      salePrice && Number(salePrice) > 0 && Number(salePrice) < Number(p.price)
-    );
-  });
 
   // 3. Danh sách Sản Phẩm Mới (Sắp xếp theo ID giảm dần)
   const newProducts = [...activeProducts]

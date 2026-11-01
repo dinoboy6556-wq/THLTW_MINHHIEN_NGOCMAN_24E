@@ -91,7 +91,7 @@ class AdminBrandController extends Controller
             return response()->json(['success' => false, 'message' => 'Không tìm thấy thương hiệu'], 404);
 
         // RÀNG BUỘC: Kiểm tra nếu thương hiệu có sản phẩm
-        if ($brand->products()->count() > 0) {
+        if ($brand->products()->exists()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Không thể xóa thương hiệu này vì đang có sản phẩm thuộc về nó!'

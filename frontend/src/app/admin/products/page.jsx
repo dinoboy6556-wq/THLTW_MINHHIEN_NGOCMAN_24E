@@ -54,11 +54,11 @@ export default function AdminProductPage() {
   }, [loadProducts]);
 
   const handleDelete = async (id) => {
-    if (!confirm("Bạn có chắc chắn muốn xóa sản phẩm này?")) return;
+    if (!confirm("Chuyển sản phẩm này vào thùng rác?")) return;
 
     try {
       await productService.remove(id);
-      alert("Đã xóa sản phẩm thành công!");
+      alert("Đã chuyển sản phẩm vào thùng rác.");
       loadProducts();
     } catch (err) {
       alert(getErrorMessage(err));
@@ -295,10 +295,13 @@ export default function AdminProductPage() {
                                 Sửa
                               </button>
                               <button
+                                type="button"
+                                title="Chuyển vào thùng rác"
+                                aria-label="Chuyển sản phẩm vào thùng rác"
                                 onClick={() => handleDelete(prod.id)}
                                 className="bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1 rounded-md text-xs font-semibold transition"
                               >
-                                Xóa
+                                🗑️
                               </button>
                             </div>
                           </td>

@@ -92,11 +92,11 @@ export default function AdminCategoryPage() {
 
   // 3. XÓA BẰNG AXIOS SERVICE
   const handleDelete = async (id) => {
-    if (!confirm("Bạn có chắc chắn muốn xóa danh mục này?")) return;
+    if (!confirm("Chuyển danh mục này vào thùng rác?")) return;
 
     try {
       await categoryService.remove(id);
-      alert("Đã xóa thành công!");
+      alert("Đã chuyển danh mục vào thùng rác.");
       if (editingId === id) resetForm();
       loadCategories();
     } catch (err) {
@@ -325,10 +325,13 @@ export default function AdminCategoryPage() {
                               Sửa
                             </button>
                             <button
+                              type="button"
+                              title="Chuyển vào thùng rác"
+                              aria-label="Chuyển danh mục vào thùng rác"
                               onClick={() => handleDelete(cat.id)}
                               className="bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1 rounded-md text-xs font-semibold transition"
                             >
-                              Xóa
+                              🗑️
                             </button>
                           </div>
                         </td>

@@ -50,14 +50,31 @@ export default function ProductsPage() {
 
     const fetchData = async () => {
       try {
-        const [resProd, resCat, resBrand] = await Promise.all([
-          productService.getAll(),
+        const [firstProductPage, resCat, resBrand] = await Promise.all([
+          productService.getAll({ per_page: 100 }),
           categoryService.getAll(),
           brandService.getAll(),
         ]);
 
+        const productPages = [extractArray(firstProductPage.data)];
+        const lastProductPage = Number(
+          firstProductPage.data?.pagination?.last_page ??
+            firstProductPage.data?.meta?.last_page ??
+            firstProductPage.data?.data?.last_page ??
+            1,
+        );
+
+        if (lastProductPage > 1) {
+          const remainingPages = await Promise.all(
+            Array.from({ length: lastProductPage - 1 }, (_, index) =>
+              productService.getAll({ per_page: 100, page: index + 2 }),
+            ),
+          );
+          productPages.push(...remainingPages.map((page) => extractArray(page.data)));
+        }
+
         if (isMounted) {
-          setProducts(extractArray(resProd.data));
+          setProducts(productPages.flat());
           setCategories(extractArray(resCat.data));
           setBrands(extractArray(resBrand.data));
         }

@@ -102,11 +102,11 @@ export default function AdminBrandPage() {
 
   // 3. XÓA BẰNG AXIOS SERVICE
   const handleDelete = async (id) => {
-    if (!confirm("Bạn có chắc chắn muốn xóa thương hiệu này?")) return;
+    if (!confirm("Chuyển thương hiệu này vào thùng rác?")) return;
 
     try {
       await brandService.remove(id);
-      alert("Đã xóa thương hiệu thành công!");
+      alert("Đã chuyển thương hiệu vào thùng rác.");
       if (editingId === id) resetForm();
       loadBrands();
     } catch (err) {
@@ -358,10 +358,13 @@ export default function AdminBrandPage() {
                               Sửa
                             </button>
                             <button
+                              type="button"
+                              title="Chuyển vào thùng rác"
+                              aria-label="Chuyển thương hiệu vào thùng rác"
                               onClick={() => handleDelete(brand.id)}
                               className="bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1 rounded-md text-xs font-semibold transition"
                             >
-                              Xóa
+                              🗑️
                             </button>
                           </div>
                         </td>

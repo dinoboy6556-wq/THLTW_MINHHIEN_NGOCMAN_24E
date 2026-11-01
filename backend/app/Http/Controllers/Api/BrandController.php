@@ -30,12 +30,17 @@ class BrandController extends Controller
      */
     public function show(string $slug): JsonResponse
     {
-        $brand = Brand::where('status', 1)
-            ->where('slug', $slug)
-            ->with(['products' => function ($query) {
-                $query->where('status', 1)->latest();
-            }])
-            ->first();
+        $query = Brand::where('status', 1);
+
+        if (ctype_digit($slug)) {
+            $query->whereKey((int) $slug);
+        } else {
+            $query->where('slug', $slug);
+        }
+
+        $brand = $query->with(['products' => function ($query) {
+            $query->where('status', 1)->latest();
+        }])->first();
 
         if (!$brand) {
             return response()->json([

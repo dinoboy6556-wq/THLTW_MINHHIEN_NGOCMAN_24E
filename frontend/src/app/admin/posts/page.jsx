@@ -102,7 +102,7 @@ export default function AdminPostsPage() {
   };
 
   const handleDelete = async (post) => {
-    if (!confirm(`Bạn có chắc chắn muốn xóa bài viết "${post.title}"?`)) {
+    if (!confirm(`Chuyển bài viết "${post.title}" vào thùng rác?`)) {
       return;
     }
 
@@ -112,7 +112,7 @@ export default function AdminPostsPage() {
         resetForm();
       }
       await loadPosts();
-      alert("Đã xóa bài viết thành công!");
+      alert("Đã chuyển bài viết vào thùng rác.");
     } catch (error) {
       alert(getErrorMessage(error));
     }
@@ -372,10 +372,13 @@ export default function AdminPostsPage() {
                                 Sửa
                               </button>
                               <button
+                                type="button"
+                                title="Chuyển vào thùng rác"
+                                aria-label="Chuyển bài viết vào thùng rác"
                                 onClick={() => handleDelete(post)}
                                 className="rounded-md bg-red-50 px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-100"
                               >
-                                Xóa
+                                🗑️
                               </button>
                             </div>
                           </td>

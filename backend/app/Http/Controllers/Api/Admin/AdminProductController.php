@@ -183,6 +183,10 @@ class AdminProductController extends Controller
         }
 
         $path = ltrim($thumbnail, '/');
+        if (Str::startsWith($path, 'images/')) {
+            return asset('/' . $path);
+        }
+
         $url = Str::startsWith($path, 'storage/')
             ? '/' . $path
             : Storage::disk('public')->url($path);

@@ -2,7 +2,8 @@ import axios from 'axios';
 
 // 1. Tạo instance Axios chuẩn
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api',
+  // Same-origin Next.js rewrite proxies the request to Laravel and avoids browser CORS issues.
+  baseURL: '/backend-api',
   headers: {
     Accept: 'application/json',
   },

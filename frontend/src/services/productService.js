@@ -2,7 +2,8 @@ import api from '@/lib/axios';
 
 const productService = {
   // Dành cho Trang chủ & Cửa hàng (Public - Không bị dính 403)
-  getAll: () => api.get('/products'),
+  getAll: (params) => api.get('/products', { params }),
+  getOnSale: () => api.get('/products', { params: { on_sale: 1 } }),
   getById: (id) => api.get(`/products/${id}`),
   getReviews: (productId) => api.get(`/products/${productId}/reviews`),
   submitReview: (productId, data) =>
@@ -12,7 +13,10 @@ const productService = {
   getAdminAll: () => api.get('/admin/products'),
   getAdminById: (id) => api.get(`/admin/products/${id}`),
   create: (data) => api.post('/admin/products', data),
-  update: (id, data) => api.post(`/admin/products/${id}`, data),
+  update: (id, data) =>
+    data instanceof FormData
+      ? api.post(`/admin/products/${id}`, data)
+      : api.put(`/admin/products/${id}`, data),
   remove: (id) => api.delete(`/admin/products/${id}`),
 };
 

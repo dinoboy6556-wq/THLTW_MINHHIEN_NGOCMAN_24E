@@ -38,6 +38,10 @@ class ProductResource extends JsonResource
         }
 
         $path = ltrim($this->thumbnail, '/');
+        if (Str::startsWith($path, 'images/')) {
+            return asset('/' . $path);
+        }
+
         $url = Str::startsWith($path, 'storage/')
             ? '/' . $path
             : Storage::disk('public')->url($path);

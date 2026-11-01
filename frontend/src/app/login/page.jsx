@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import api from '@/lib/axios';
 
 export default function LoginPage() {
   const [login, setLogin] = useState('');
@@ -17,24 +18,16 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({ login, password }),
-      });
+      const response = await api.post('/login', { login, password });
+      const data = response.data;
 
-      const data = await res.json();
-
-      if (res.ok && data.success) {
+      if (data.success) {
         // Lưu Bearer Token và Thông tin User vào localStorage
         localStorage.setItem('access_token', data.access_token);
         localStorage.setItem('user_info', JSON.stringify(data.user));
 
         // Phân luồng điều hướng theo Role
-        if (data.user.role === 'admin') {
+        if (['admin', 'super_admin'].includes(data.user.role)) {
           router.push('/admin');
         } else {
           const redirect = new URLSearchParams(window.location.search).get('redirect');
@@ -48,8 +41,7 @@ export default function LoginPage() {
         setError(data.message || 'Đăng nhập thất bại, vui lòng kiểm tra lại!');
       }
     } catch (err) {
-      console.error(err);
-      setError('Không thể kết nối tới máy chủ Backend Laravel!');
+      setError(err.response?.data?.message || 'Không thể kết nối tới máy chủ Backend Laravel!');
     } finally {
       setLoading(false);
     }
