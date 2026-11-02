@@ -122,9 +122,6 @@ class AdminPostController extends Controller
 
     public function destroy(Post $post): JsonResponse
     {
-        if (Str::startsWith($post->cover_image ?? '', 'posts/') && Storage::disk('public')->exists($post->cover_image)) {
-            Storage::disk('public')->delete($post->cover_image);
-        }
         $post->delete();
 
         return response()->json([

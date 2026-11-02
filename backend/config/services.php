@@ -35,4 +35,18 @@ return [
         ],
     ],
 
+    'openai' => [
+        'api_key' => env('OPENAI_API_KEY'),
+        'model' => env('OPENAI_MODEL', 'gpt-6-luna'),
+        'responses_url' => env('OPENAI_RESPONSES_URL', 'https://api.openai.com/v1/responses'),
+    ],
+
+    'vnpay' => [
+        'tmn_code' => env('VNPAY_TMN_CODE'),
+        'hash_secret' => env('VNPAY_HASH_SECRET'),
+        'payment_url' => env('VNPAY_PAYMENT_URL', 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html'),
+        'return_url' => env('VNPAY_RETURN_URL', rtrim(env('APP_URL', 'http://127.0.0.1:8000'), '/') . '/api/payments/vnpay/return'),
+        'frontend_url' => env('VNPAY_FRONTEND_URL', 'http://localhost:3000'),
+    ],
+
 ];

@@ -40,9 +40,18 @@ export default function AdminBrandPage() {
     setLoading(true);
     setApiError("");
     try {
-      const res = await brandService.getAll();
-      const extractedList = extractArray(res.data);
-      setBrands(extractedList);
+      const perPage = 100;
+      const firstPage = await brandService.getAdminAll({ per_page: perPage, page: 1 });
+      const paginator = firstPage.data?.data;
+      const remainingPages = await Promise.all(
+        Array.from({ length: Math.max(0, Number(paginator?.last_page || 1) - 1) }, (_, index) =>
+          brandService.getAdminAll({ per_page: perPage, page: index + 2 }),
+        ),
+      );
+      setBrands([
+        ...extractArray(firstPage.data),
+        ...remainingPages.flatMap((response) => extractArray(response.data)),
+      ]);
     } catch (err) {
       const errorMsg = getErrorMessage(err);
       console.error("Lỗi API Thương hiệu:", errorMsg);
@@ -102,11 +111,11 @@ export default function AdminBrandPage() {
 
   // 3. XÓA BẰNG AXIOS SERVICE
   const handleDelete = async (id) => {
-    if (!confirm("Bạn có chắc chắn muốn xóa thương hiệu này?")) return;
+    if (!confirm("Chuyển thương hiệu này vào thùng rác?")) return;
 
     try {
       await brandService.remove(id);
-      alert("Đã xóa thương hiệu thành công!");
+      alert("Đã chuyển thương hiệu vào thùng rác.");
       if (editingId === id) resetForm();
       loadBrands();
     } catch (err) {
@@ -358,10 +367,13 @@ export default function AdminBrandPage() {
                               Sửa
                             </button>
                             <button
+                              type="button"
+                              title="Chuyển vào thùng rác"
+                              aria-label="Chuyển thương hiệu vào thùng rác"
                               onClick={() => handleDelete(brand.id)}
                               className="bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1 rounded-md text-xs font-semibold transition"
                             >
-                              Xóa
+                              🗑️
                             </button>
                           </div>
                         </td>

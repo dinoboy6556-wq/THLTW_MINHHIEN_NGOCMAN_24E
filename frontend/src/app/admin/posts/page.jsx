@@ -30,8 +30,19 @@ export default function AdminPostsPage() {
     setApiError("");
 
     try {
-      const response = await postService.getAdminAll({ per_page: 100 });
-      setPosts(response.data?.data?.data ?? []);
+      const perPage = 100;
+      const firstPage = await postService.getAdminAll({ per_page: perPage, page: 1 });
+      const paginator = firstPage.data?.data;
+      const remainingPages = await Promise.all(
+        Array.from(
+          { length: Math.max(0, Number(paginator?.last_page || 1) - 1) },
+          (_, index) => postService.getAdminAll({ per_page: perPage, page: index + 2 }),
+        ),
+      );
+      setPosts([
+        ...(Array.isArray(paginator?.data) ? paginator.data : []),
+        ...remainingPages.flatMap((response) => response.data?.data?.data ?? []),
+      ]);
     } catch (error) {
       const message = getErrorMessage(error);
       console.error("Lỗi tải danh sách bài viết:", message);
@@ -102,7 +113,7 @@ export default function AdminPostsPage() {
   };
 
   const handleDelete = async (post) => {
-    if (!confirm(`Bạn có chắc chắn muốn xóa bài viết "${post.title}"?`)) {
+    if (!confirm(`Chuyển bài viết "${post.title}" vào thùng rác?`)) {
       return;
     }
 
@@ -112,7 +123,7 @@ export default function AdminPostsPage() {
         resetForm();
       }
       await loadPosts();
-      alert("Đã xóa bài viết thành công!");
+      alert("Đã chuyển bài viết vào thùng rác.");
     } catch (error) {
       alert(getErrorMessage(error));
     }
@@ -372,10 +383,13 @@ export default function AdminPostsPage() {
                                 Sửa
                               </button>
                               <button
+                                type="button"
+                                title="Chuyển vào thùng rác"
+                                aria-label="Chuyển bài viết vào thùng rác"
                                 onClick={() => handleDelete(post)}
                                 className="rounded-md bg-red-50 px-3 py-1 text-xs font-semibold text-red-700 hover:bg-red-100"
                               >
-                                Xóa
+                                🗑️
                               </button>
                             </div>
                           </td>

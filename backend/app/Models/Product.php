@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Product extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $table = 'products';
     public $timestamps = true;
@@ -44,5 +45,15 @@ class Product extends Model
     public function reviews()
     {
         return $this->hasMany(ProductReview::class);
+    }
+
+    public function favorites()
+    {
+        return $this->hasMany(ProductFavorite::class);
+    }
+
+    public function reactions()
+    {
+        return $this->hasMany(ProductReaction::class);
     }
 }

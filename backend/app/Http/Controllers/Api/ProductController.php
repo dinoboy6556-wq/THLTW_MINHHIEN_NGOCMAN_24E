@@ -20,6 +20,12 @@ class ProductController extends Controller
             ->active()
             ->with(['category:id,name,slug', 'brand:id,name,logo']);
 
+        if ($request->boolean('on_sale')) {
+            $query->whereNotNull('promo_price')
+                ->where('promo_price', '>', 0)
+                ->whereColumn('promo_price', '<', 'price');
+        }
+
         // 1. Tìm kiếm theo từ khóa (Tên hoặc Mô tả)
         if ($request->filled('keyword')) {
             $keyword = $request->input('keyword');
@@ -31,7 +37,7 @@ class ProductController extends Controller
 
         // 2. Lọc theo Danh mục (category_id hoặc category_slug)
         if ($request->filled('category_id')) {
-            $query->where('category_id', $request->input('category_id'));
+            $query->where('cate_id', $request->input('category_id'));
         }
 
         // 3. Lọc theo Thương hiệu

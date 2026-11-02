@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class UserController extends Controller
@@ -84,5 +85,34 @@ class UserController extends Controller
                 'message' => 'Lỗi khi thay đổi trạng thái tài khoản: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    public function destroy(Request $request, int $id): JsonResponse
+    {
+        $targetUser = User::find($id);
+
+        if (!$targetUser) {
+            return response()->json(['message' => 'Không tìm thấy người dùng!'], 404);
+        }
+
+        $currentUser = $request->user();
+        if ((int) $currentUser->id === (int) $targetUser->id) {
+            return response()->json(['message' => 'Bạn không thể xóa tài khoản của chính mình!'], 403);
+        }
+
+        if ($targetUser->role === 'super_admin') {
+            return response()->json(['message' => 'Không thể xóa tài khoản Super Admin!'], 403);
+        }
+
+        if ($currentUser->role !== 'super_admin' && $targetUser->role !== 'member') {
+            return response()->json(['message' => 'Admin thường chỉ có quyền xóa tài khoản Member!'], 403);
+        }
+
+        $targetUser->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đã chuyển người dùng vào thùng rác.',
+        ]);
     }
 }

@@ -16,6 +16,7 @@ const userService = {
         },
       }
     ),
+  remove: (id) => api.delete(`${URL}/${id}`),
 };
 
 export default userService;

@@ -34,9 +34,27 @@ export default function AdminProductPage() {
     setLoading(true);
     setApiError("");
     try {
-      const res = await productService.getAll();
-      const extractedList = extractArray(res.data);
-      setProducts(extractedList);
+      const perPage = 100;
+      const firstPage = await productService.getAdminAll({
+        per_page: perPage,
+        page: 1,
+      });
+      const firstPageProducts = extractArray(firstPage.data);
+      const paginator = firstPage.data?.data;
+      const lastPage = Number(paginator?.last_page || 1);
+      const remainingPages = await Promise.all(
+        Array.from({ length: Math.max(0, lastPage - 1) }, (_, index) =>
+          productService.getAdminAll({
+            per_page: perPage,
+            page: index + 2,
+          }),
+        ),
+      );
+
+      setProducts([
+        ...firstPageProducts,
+        ...remainingPages.flatMap((response) => extractArray(response.data)),
+      ]);
     } catch (err) {
       const errorMsg = getErrorMessage(err);
       console.error("Lỗi API Sản phẩm:", errorMsg);
@@ -54,11 +72,11 @@ export default function AdminProductPage() {
   }, [loadProducts]);
 
   const handleDelete = async (id) => {
-    if (!confirm("Bạn có chắc chắn muốn xóa sản phẩm này?")) return;
+    if (!confirm("Chuyển sản phẩm này vào thùng rác?")) return;
 
     try {
       await productService.remove(id);
-      alert("Đã xóa sản phẩm thành công!");
+      alert("Đã chuyển sản phẩm vào thùng rác.");
       loadProducts();
     } catch (err) {
       alert(getErrorMessage(err));
@@ -295,10 +313,13 @@ export default function AdminProductPage() {
                                 Sửa
                               </button>
                               <button
+                                type="button"
+                                title="Chuyển vào thùng rác"
+                                aria-label="Chuyển sản phẩm vào thùng rác"
                                 onClick={() => handleDelete(prod.id)}
                                 className="bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1 rounded-md text-xs font-semibold transition"
                               >
-                                Xóa
+                                🗑️
                               </button>
                             </div>
                           </td>

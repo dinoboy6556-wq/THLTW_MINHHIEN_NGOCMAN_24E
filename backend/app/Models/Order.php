@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Order extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $table = 'order';
 
@@ -20,6 +21,8 @@ class Order extends Model
         'cus_address',
         'total_amount',
         'shipping_fee',
+        'coupon_code',
+        'discount_amount',
         'payment_method',
         'payment_status',
         'status',
@@ -35,6 +38,11 @@ class Order extends Model
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function requests()
+    {
+        return $this->hasMany(OrderRequest::class, 'order_id');
     }
 
     public function getCustomerNameAttribute(): string

@@ -9,11 +9,16 @@ export default function AdminSidebar({ onLogout }) {
   const navItems = [
     { name: "Tổng quan", path: "/admin", icon: "📊" },
     { name: "Quản lý Danh mục", path: "/admin/categories", icon: "📁" },
+    { name: "Quản lý Menu", path: "/admin/menus", icon: "🧭" },
     { name: "Quản lý Thương hiệu", path: "/admin/brands", icon: "🏷️" },
     { name: "Quản lý Sản phẩm", path: "/admin/products", icon: "📦" },
+    { name: "Mã giảm giá", path: "/admin/coupons", icon: "🎟️" },
     { name: "Quản lý Bài viết", path: "/admin/posts", icon: "📝" },
+    { name: "Kiểm duyệt đánh giá", path: "/admin/reviews", icon: "⭐" },
     { name: "Quản lý Đơn hàng", path: "/admin/orders", icon: "🛒" },
+    { name: "Yêu cầu hủy / trả hàng", path: "/admin/order-requests", icon: "↩️" },
     { name: "Quản lý Người dùng", path: "/admin/users", icon: "👥" }, // Thêm mục Quản lý Người dùng
+    { name: "Thùng rác", path: "/admin/trash", icon: "🗑️" },
   ];
 
   return (

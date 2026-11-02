@@ -3,10 +3,21 @@
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import api from '@/lib/axios';
+import menuService from '@/services/menuService';
+
+const defaultMenuItems = [
+  { label: 'Trang chủ', url: '/' },
+  { label: 'Sản phẩm', url: '/products' },
+  { label: 'Bài viết', url: '/posts' },
+  { label: 'Danh mục', url: '/categories' },
+  { label: 'Thương hiệu', url: '/brands' },
+];
 
 export default function Header() {
   const [user, setUser] = useState(null);
   const [cartCount, setCartCount] = useState(0);
+  const [menuItems, setMenuItems] = useState(defaultMenuItems);
   const router = useRouter();
 
   useEffect(() => {
@@ -22,6 +33,19 @@ export default function Header() {
         console.error('Lỗi parse thông tin user:', err);
       }
     }
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    menuService.getPublic().then((response) => {
+      const items = response.data?.data;
+      if (isMounted && Array.isArray(items)) setMenuItems(items);
+    }).catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -45,15 +69,8 @@ export default function Header() {
   }, []);
 
   const handleLogout = async () => {
-    const token = localStorage.getItem('access_token');
     try {
-      await fetch('http://127.0.0.1:8000/api/logout', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-        },
-      });
+      await api.post('/logout');
     } catch (err) {
       console.error(err);
     } finally {
@@ -74,11 +91,20 @@ export default function Header() {
 
         {/* NAVIGATION LINKS */}
         <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-700">
-          <Link href="/" className="hover:text-indigo-600 transition">Trang chủ</Link>
-          <Link href="/products" className="hover:text-indigo-600 transition">Sản phẩm</Link>
-          <Link href="/posts" className="hover:text-indigo-600 transition">Bài viết</Link>
-          <Link href="/categories" className="hover:text-indigo-600 transition">Danh mục</Link>
-          <Link href="/brands" className="hover:text-indigo-600 transition">Thương hiệu</Link>
+          {menuItems.map((item) => {
+            const isExternal = /^https?:\/\//i.test(item.url);
+            const className = "hover:text-indigo-600 transition";
+
+            return isExternal ? (
+              <a key={item.id || item.url} href={item.url} target={item.open_new_tab ? "_blank" : undefined} rel={item.open_new_tab ? "noopener noreferrer" : undefined} className={className}>
+                {item.label}
+              </a>
+            ) : (
+              <Link key={item.id || item.url} href={item.url} className={className}>
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
 
         {/* CART & USER ACTIONS */}
@@ -94,15 +120,24 @@ export default function Header() {
 
           {user ? (
             <div className="flex items-center gap-3 border-l pl-4 border-gray-200">
-              {user.role === 'admin' && (
+              {['admin', 'super_admin'].includes(user.role) && (
                 <Link href="/admin" className="text-xs bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded-md font-bold">
                   Quản trị
                 </Link>
               )}
-              <Link href="/orders" className="text-xs font-semibold text-indigo-600 hover:text-indigo-800">
-                Đơn hàng
+              {user.role === 'member' && (
+                <Link href="/favorites" className="text-sm font-medium text-gray-700 hover:text-pink-600">♡ Yêu thích</Link>
+              )}
+              <Link href="/profile" className="flex items-center gap-2 text-sm text-gray-700 font-medium hover:text-indigo-600">
+                <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-indigo-100 text-xs font-bold text-indigo-700">
+                  {user.avatar_url ? (
+                    <img src={user.avatar_url} alt="Ảnh đại diện" className="h-full w-full object-cover" />
+                  ) : (
+                    user.username?.charAt(0)?.toUpperCase() || "U"
+                  )}
+                </span>
+                Hồ sơ
               </Link>
-              <span className="text-sm text-gray-700 font-medium">{user.username}</span>
               <button
                 onClick={handleLogout}
                 className="text-xs bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1.5 rounded-lg transition font-medium"

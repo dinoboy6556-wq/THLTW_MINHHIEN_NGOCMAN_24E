@@ -4,13 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     // 1. Chỉ định chính xác tên bảng trong Database
     protected $table = 'user';
@@ -23,6 +24,7 @@ class User extends Authenticatable
         'pass',
         'phone',
         'address',
+        'avatar',
         'role',
         'status',
     ];
@@ -35,6 +37,16 @@ class User extends Authenticatable
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class, 'user_id');
+    }
+
+    public function favoriteProducts(): HasMany
+    {
+        return $this->hasMany(ProductFavorite::class, 'user_id');
+    }
+
+    public function productReactions(): HasMany
+    {
+        return $this->hasMany(ProductReaction::class, 'user_id');
     }
 
     // 2. Khai báo cho Laravel Auth biết cột mật khẩu tên là 'pass'
