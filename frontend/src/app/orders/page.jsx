@@ -166,7 +166,7 @@ export default function OrdersPage() {
                     <dl className="flex flex-col gap-2 border-t border-gray-100 pt-4 text-sm md:border-l md:border-t-0 md:pl-5 md:pt-0">
                       <div className="flex justify-between gap-3">
                         <dt className="text-gray-500">Thanh toán</dt>
-                        <dd className="text-right font-medium text-gray-800">{order.payment_method === "vnpay" ? "VNPAY (chuyển khoản / QR)" : order.payment_method === "bank_transfer" ? "Chuyển khoản" : "Khi nhận hàng"}</dd>
+                        <dd className="text-right font-medium text-gray-800">{order.payment_method === "vnpay" ? "VNPAY (chuyển khoản / QR)" : order.payment_method === "qr" ? "QR MoMo" : order.payment_method === "bank_transfer" ? "Chuyển khoản" : "Khi nhận hàng"}</dd>
                       </div>
                       <div className="flex justify-between gap-3">
                         <dt className="text-gray-500">Trạng thái trả tiền</dt>

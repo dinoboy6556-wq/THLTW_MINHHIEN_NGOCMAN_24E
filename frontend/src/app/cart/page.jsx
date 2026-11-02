@@ -5,13 +5,26 @@ import Link from "next/link";
 import api, { getErrorMessage } from "@/lib/axios";
 import couponService from "@/services/couponService";
 
-function VnpayInstructions() {
+function QrPaymentInstructions({ totalAmount }) {
+  const paymentNote = "Thanh toan don hang";
+  const momoUrl = "https://nhantien.momo.vn/0336421837";
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=12&data=${encodeURIComponent(momoUrl)}`;
+
   return (
-    <div className="mt-4 rounded-xl border border-indigo-100 bg-indigo-50/60 p-4 sm:p-5">
+    <div className="mt-4 grid gap-4 rounded-xl border border-pink-100 bg-pink-50/60 p-4 sm:grid-cols-[180px_1fr] sm:p-5">
+      <div className="mx-auto w-full max-w-[180px] rounded-xl bg-white p-2 shadow-sm">
+        <img src={qrUrl} alt="QR thanh toán MoMo" className="h-auto w-full" />
+      </div>
       <div className="text-sm text-gray-700">
-        <h3 className="font-bold text-gray-900">Thanh toán qua cổng VNPAY</h3>
-        <p className="mt-2 text-xs leading-5 text-gray-600">
-          Sau khi xác nhận đặt hàng, bạn sẽ được chuyển tới VNPAY để chọn chuyển khoản ngân hàng hoặc quét mã VNPAY-QR. Đơn hàng chỉ được ghi nhận đã thanh toán sau khi VNPAY xác nhận giao dịch.
+        <h3 className="font-bold text-gray-900">Thanh toán bằng QR MoMo</h3>
+        <p className="mt-1 text-xs text-gray-600">Quét mã bằng ứng dụng MoMo hoặc chuyển khoản thủ công.</p>
+        <dl className="mt-3 space-y-2 text-xs sm:text-sm">
+          <div className="flex justify-between gap-3"><dt className="text-gray-500">Ví MoMo</dt><dd className="font-semibold">0336421837</dd></div>
+          <div className="flex justify-between gap-3"><dt className="text-gray-500">Chủ tài khoản</dt><dd className="font-semibold">Nguyễn Ngọc Mẫn</dd></div>
+          <div className="flex justify-between gap-3"><dt className="text-gray-500">Số tiền</dt><dd className="font-semibold text-pink-700">{Number(totalAmount).toLocaleString("vi-VN")} đ</dd></div>
+        </dl>
+        <p className="mt-3 rounded-lg bg-white px-3 py-2 text-xs text-gray-600">
+          Nội dung chuyển khoản: <strong>{paymentNote}</strong>. Đơn hàng được ghi nhận sau khi cửa hàng xác nhận thanh toán.
         </p>
       </div>
     </div>
@@ -263,6 +276,10 @@ export default function CartPage() {
             </p>
             {orderComplete.payment_method === "vnpay" ? (
               <p className="mt-3 text-sm text-gray-500">Thanh toán VNPAY đang chờ xác nhận.</p>
+            ) : orderComplete.payment_method === "qr" ? (
+              <p className="mt-3 text-sm text-gray-500">
+                Đơn hàng đang chờ xác nhận sau khi chuyển khoản MoMo. Ví: <strong>0336421837</strong> - Nguyễn Ngọc Mẫn.
+              </p>
             ) : (
               <p className="mt-3 text-sm text-gray-500">
                 Đơn hàng đang chờ xác nhận. Bạn thanh toán khi nhận hàng.
@@ -653,23 +670,23 @@ export default function CartPage() {
                       <span className="mt-1 block text-xs text-gray-500">Trả tiền trực tiếp cho đơn vị giao hàng.</span>
                     </span>
                   </label>
-                  <label className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 ${paymentMethod === "vnpay" ? "border-indigo-500 bg-indigo-50" : "border-gray-200"}`}>
+                  <label className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 ${paymentMethod === "qr" ? "border-indigo-500 bg-indigo-50" : "border-gray-200"}`}>
                     <input
                       type="radio"
                       name="payment_method"
-                      value="vnpay"
-                      checked={paymentMethod === "vnpay"}
-                      onChange={() => setPaymentMethod("vnpay")}
+                      value="qr"
+                      checked={paymentMethod === "qr"}
+                      onChange={() => setPaymentMethod("qr")}
                       className="mt-1 accent-indigo-600"
                     />
                     <span>
-                      <span className="block text-sm font-semibold text-gray-800">Chuyển khoản / QR qua VNPAY</span>
-                      <span className="mt-1 block text-xs text-gray-500">Thanh toán trên cổng VNPAY bằng ngân hàng hoặc mã QR.</span>
+                      <span className="block text-sm font-semibold text-gray-800">Chuyển khoản / QR MoMo</span>
+                      <span className="mt-1 block text-xs text-gray-500">Quét mã MoMo và chuyển khoản theo số tiền đơn hàng.</span>
                     </span>
                   </label>
                 </div>
-                {paymentMethod === "vnpay" && (
-                  <VnpayInstructions />
+                {paymentMethod === "qr" && (
+                  <QrPaymentInstructions totalAmount={total} />
                 )}
               </fieldset>
 

@@ -414,6 +414,8 @@ export default function AdminOrderPage() {
                 <p className="text-xs text-gray-700">
                   {selectedOrder.payment_method === "vnpay"
                     ? "VNPAY (chuyển khoản / QR)"
+                    : selectedOrder.payment_method === "qr"
+                      ? "QR MoMo"
                     : selectedOrder.payment_method === "bank_transfer"
                       ? "Chuyển khoản ngân hàng"
                       : "Thanh toán khi nhận hàng"}

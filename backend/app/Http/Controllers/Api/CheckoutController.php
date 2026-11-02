@@ -23,7 +23,7 @@ class CheckoutController extends Controller
             'cus_email' => 'required|email|max:100',
             'cus_phone' => 'required|string|max:20',
             'cus_address' => 'required|string|max:1000',
-            'payment_method' => 'required|in:cod,vnpay',
+            'payment_method' => 'required|in:cod,vnpay,qr',
             'coupon_code' => 'nullable|string|max:40',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|integer|distinct|exists:products,id',
