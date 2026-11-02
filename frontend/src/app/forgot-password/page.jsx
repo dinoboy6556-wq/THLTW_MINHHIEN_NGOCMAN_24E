@@ -80,6 +80,11 @@ export default function ForgotPasswordPage() {
         {message && (
           <p role="status" className="mb-4 rounded-xl border border-green-100 bg-green-50 p-3 text-sm font-medium text-green-700">
             {message}
+            {step === 2 && (
+              <span className="mt-1 block font-normal text-green-700">
+                Nếu chưa nhận được thư, hãy kiểm tra thư mục Spam/Quảng cáo và chờ vài phút.
+              </span>
+            )}
           </p>
         )}
 

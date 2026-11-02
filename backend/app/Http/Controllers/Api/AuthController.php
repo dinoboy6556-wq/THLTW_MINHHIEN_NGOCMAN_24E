@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
@@ -163,12 +164,25 @@ class AuthController extends Controller
             $otp = (string) random_int(100000, 999999);
             Cache::put("password-reset:$email", Hash::make($otp), now()->addMinutes(10));
 
-            Mail::raw(
-                "Xin chào {$user->username},\n\nMã xác nhận đặt lại mật khẩu MyShop của bạn là: {$otp}\n\nMã có hiệu lực trong 10 phút và không được chia sẻ với người khác.",
-                function ($message) use ($email) {
-                    $message->to($email)->subject('Ma xac nhan dat lai mat khau MyShop');
-                }
-            );
+            try {
+                Mail::raw(
+                    "Xin chào {$user->username},\n\nMã xác nhận đặt lại mật khẩu MyShop của bạn là: {$otp}\n\nMã có hiệu lực trong 10 phút và không được chia sẻ với người khác.",
+                    function ($message) use ($email) {
+                        $message->to($email)->subject('Ma xac nhan dat lai mat khau MyShop');
+                    }
+                );
+            } catch (\Throwable $exception) {
+                Cache::forget("password-reset:$email");
+                Log::error('Không thể gửi email mã xác nhận đặt lại mật khẩu.', [
+                    'email' => $email,
+                    'exception' => $exception->getMessage(),
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Không thể gửi email xác nhận. Vui lòng kiểm tra cấu hình email hoặc thử lại sau.',
+                ], 503);
+            }
         }
 
         return response()->json([
