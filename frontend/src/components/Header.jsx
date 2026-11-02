@@ -120,10 +120,13 @@ export default function Header() {
 
           {user ? (
             <div className="flex items-center gap-3 border-l pl-4 border-gray-200">
-              {user.role === 'admin' && (
+              {['admin', 'super_admin'].includes(user.role) && (
                 <Link href="/admin" className="text-xs bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded-md font-bold">
                   Quản trị
                 </Link>
+              )}
+              {user.role === 'member' && (
+                <Link href="/favorites" className="text-sm font-medium text-gray-700 hover:text-pink-600">♡ Yêu thích</Link>
               )}
               <Link href="/profile" className="flex items-center gap-2 text-sm text-gray-700 font-medium hover:text-indigo-600">
                 <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-indigo-100 text-xs font-bold text-indigo-700">

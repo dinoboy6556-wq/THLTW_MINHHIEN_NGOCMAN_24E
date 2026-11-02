@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Coupon;
 use App\Models\Order;
 use App\Models\Product;
 use App\Services\VnpayService;
+use App\Services\OrderNotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +24,7 @@ class CheckoutController extends Controller
             'cus_phone' => 'required|string|max:20',
             'cus_address' => 'required|string|max:1000',
             'payment_method' => 'required|in:cod,vnpay',
+            'coupon_code' => 'nullable|string|max:40',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|integer|distinct|exists:products,id',
             'items.*.quantity' => 'required|integer|min:1',
@@ -38,7 +41,11 @@ class CheckoutController extends Controller
             ->keyBy('product_id')
             ->map(fn (array $item): int => (int) $item['quantity']);
 
-        $order = DB::transaction(function () use ($request, $validated, $quantities): Order {
+        $couponCode = isset($validated['coupon_code'])
+            ? mb_strtoupper(trim($validated['coupon_code']))
+            : null;
+
+        $order = DB::transaction(function () use ($request, $validated, $quantities, $couponCode): Order {
             $products = Product::query()
                 ->whereIn('id', $quantities->keys())
                 ->lockForUpdate()
@@ -76,6 +83,19 @@ class CheckoutController extends Controller
                 ];
             }
 
+            $coupon = null;
+            $discountAmount = 0.0;
+            if ($couponCode !== null && $couponCode !== '') {
+                $coupon = Coupon::query()->where('code', $couponCode)->lockForUpdate()->first();
+                if (!$coupon || !$coupon->isUsable((float) $subtotal)) {
+                    throw ValidationException::withMessages([
+                        'coupon_code' => 'Mã giảm giá không hợp lệ, đã hết hạn, hết lượt hoặc chưa đủ giá trị đơn hàng.',
+                    ]);
+                }
+                $discountAmount = $coupon->discountFor((float) $subtotal);
+                $coupon->increment('used_count');
+            }
+
             $shippingFee = $subtotal >= 1000000 || $subtotal === 0 ? 0 : 30000;
             $order = Order::create([
                 'order_code' => 'ORD-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(5)),
@@ -84,8 +104,10 @@ class CheckoutController extends Controller
                 'cus_email' => $validated['cus_email'],
                 'cus_phone' => $validated['cus_phone'],
                 'cus_address' => $validated['cus_address'],
-                'total_amount' => round($subtotal + $shippingFee, 2),
+                'total_amount' => round(max(0, $subtotal - $discountAmount) + $shippingFee, 2),
                 'shipping_fee' => $shippingFee,
+                'coupon_code' => $coupon?->code,
+                'discount_amount' => $discountAmount,
                 'payment_method' => $validated['payment_method'],
                 'payment_status' => 'pending',
                 'status' => 0,
@@ -108,6 +130,8 @@ class CheckoutController extends Controller
             'order_code' => $order->order_code,
             'total_amount' => (float) $order->total_amount,
             'shipping_fee' => (float) $order->shipping_fee,
+            'coupon_code' => $order->coupon_code,
+            'discount_amount' => (float) $order->discount_amount,
             'payment_method' => $order->payment_method,
             'payment_status' => $order->payment_status,
         ];
@@ -115,6 +139,8 @@ class CheckoutController extends Controller
         if ($order->payment_method === 'vnpay') {
             $data['payment_url'] = app(VnpayService::class)->createPaymentUrl($order, $request);
         }
+
+        app(OrderNotificationService::class)->send($order, 'Đơn hàng đã được tạo');
 
         return response()->json([
             'success' => true,

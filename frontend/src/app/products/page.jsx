@@ -19,6 +19,9 @@ export default function ProductsPage() {
   const [selectedBrand, setSelectedBrand] = useState("all");
   const [priceRange, setPriceRange] = useState("all");
   const [sortBy, setSortBy] = useState("latest");
+  const [inStockOnly, setInStockOnly] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -29,6 +32,30 @@ export default function ProductsPage() {
       if (brandId) setSelectedBrand(brandId);
     });
   }, []);
+
+  useEffect(() => {
+    const keyword = searchTerm.trim();
+    if (keyword.length < 2) {
+      return undefined;
+    }
+
+    let isCurrent = true;
+    const timer = setTimeout(async () => {
+      try {
+        const response = await productService.getAll({ keyword, per_page: 6 });
+        const payload = response.data?.data;
+        if (isCurrent) setSuggestions(Array.isArray(payload) ? payload : payload?.data || []);
+      } catch (requestError) {
+        if (isCurrent) setSuggestions([]);
+        console.warn("Không tải được gợi ý tìm kiếm:", getErrorMessage(requestError));
+      }
+    }, 250);
+
+    return () => {
+      isCurrent = false;
+      clearTimeout(timer);
+    };
+  }, [searchTerm]);
 
   // State Phân trang
   const [currentPage, setCurrentPage] = useState(1);
@@ -145,7 +172,8 @@ export default function ProductsPage() {
         else if (priceRange === "above-30m")
           matchPrice = currentPrice > 30000000;
 
-        return matchSearch && matchCategory && matchBrand && matchPrice;
+        const matchStock = !inStockOnly || Number(product.stock) > 0;
+        return matchSearch && matchCategory && matchBrand && matchPrice && matchStock;
       })
       .sort((a, b) => {
         const priceA = Number(a.sale_price ?? a.promo_price ?? a.price ?? 0);
@@ -167,6 +195,7 @@ export default function ProductsPage() {
     selectedBrand,
     priceRange,
     sortBy,
+    inStockOnly,
   ]);
 
   // Phân trang an toàn
@@ -185,6 +214,9 @@ export default function ProductsPage() {
     setSelectedBrand("all");
     setPriceRange("all");
     setSortBy("latest");
+    setInStockOnly(false);
+    setSuggestions([]);
+    setShowSuggestions(false);
     setCurrentPage(1);
   };
 
@@ -203,17 +235,21 @@ export default function ProductsPage() {
           </div>
 
           {/* Thanh tìm kiếm nhanh */}
-          <div className="w-full md:w-80 bg-white/10 p-1.5 rounded-2xl border border-white/20 backdrop-blur-md flex items-center gap-2">
+          <div className="relative w-full md:w-80">
+          <div className="w-full bg-white/10 p-1.5 rounded-2xl border border-white/20 backdrop-blur-md flex items-center gap-2">
             <span className="pl-3 text-gray-300">🔍</span>
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
+                setShowSuggestions(true);
                 setCurrentPage(1);
               }}
               placeholder="Tìm tên sản phẩm..."
               className="w-full bg-transparent text-white placeholder-gray-300 text-sm focus:outline-none px-1"
+              onFocus={() => setShowSuggestions(true)}
+              onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
             />
             {searchTerm && (
               <button
@@ -227,11 +263,17 @@ export default function ProductsPage() {
               </button>
             )}
           </div>
+          {showSuggestions && searchTerm.trim().length >= 2 && suggestions.length > 0 && (
+            <ul className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-xl border border-gray-200 bg-white text-gray-800 shadow-xl">
+              {suggestions.map((item) => <li key={item.id}><Link href={`/products/${item.slug || item.id}`} onMouseDown={() => setShowSuggestions(false)} className="block border-b border-gray-100 px-4 py-3 text-sm hover:bg-indigo-50"><span className="font-medium">{item.name}</span><span className="mt-1 block text-xs text-indigo-600">{Number(item.promo_price || item.price || 0).toLocaleString("vi-VN")} đ</span></Link></li>)}
+            </ul>
+          )}
+          </div>
         </div>
 
         {/* THANH BỘ LỌC & SẮP XẾP */}
         <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full lg:w-auto">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 w-full lg:w-auto">
             {/* 1. Danh mục */}
             <select
               value={selectedCategory}
@@ -247,6 +289,11 @@ export default function ProductsPage() {
                   {cat.name}
                 </option>
               ))}
+            </select>
+
+            <select value={inStockOnly ? "in-stock" : "all-stock"} onChange={(e) => { setInStockOnly(e.target.value === "in-stock"); setCurrentPage(1); }} className="bg-gray-50 border border-gray-200 text-gray-800 text-xs font-medium rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <option value="all-stock">📦 Mọi tình trạng kho</option>
+              <option value="in-stock">Còn hàng</option>
             </select>
 
             {/* 2. Thương hiệu */}

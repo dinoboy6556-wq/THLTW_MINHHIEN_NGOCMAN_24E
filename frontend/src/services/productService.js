@@ -8,6 +8,11 @@ const productService = {
   getReviews: (productId, params) => api.get(`/products/${productId}/reviews`, { params }),
   submitReview: (productId, data) =>
     api.post(`/products/${productId}/reviews`, data),
+  getReactions: (productId) => api.get(`/products/${productId}/reactions`),
+  updateReaction: (productId, reaction) =>
+    api.put(`/products/${productId}/reaction`, { reaction }),
+  addFavorite: (productId) => api.put(`/products/${productId}/favorite`),
+  removeFavorite: (productId) => api.delete(`/products/${productId}/favorite`),
 
   // Dành riêng cho trang Admin Dashboard
   getAdminAll: (params) => api.get('/admin/products', { params }),

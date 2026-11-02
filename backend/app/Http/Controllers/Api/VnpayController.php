@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Coupon;
 use App\Models\Order;
+use App\Services\OrderNotificationService;
 use App\Services\VnpayService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -37,6 +39,14 @@ class VnpayController extends Controller
             && ($params['vnp_TransactionStatus'] ?? null) === '00';
         $updated = $this->finalizePayment($order->id, $paid);
 
+        if ($updated) {
+            $freshOrder = $order->fresh();
+            app(OrderNotificationService::class)->send(
+                $freshOrder,
+                $paid ? 'Thanh toán VNPAY thành công' : 'Thanh toán VNPAY thất bại, đơn đã hủy',
+            );
+        }
+
         return response()->json($updated
             ? ['RspCode' => '00', 'Message' => 'Confirm Success']
             : ['RspCode' => '02', 'Message' => 'Order already confirmed']);
@@ -57,7 +67,13 @@ class VnpayController extends Controller
             && ($params['vnp_TransactionStatus'] ?? null) === '00';
 
         if ($amountMatches) {
-            $this->finalizePayment($order->id, $paid);
+            $updated = $this->finalizePayment($order->id, $paid);
+            if ($updated) {
+                app(OrderNotificationService::class)->send(
+                    $order->fresh(),
+                    $paid ? 'Thanh toán VNPAY thành công' : 'Thanh toán VNPAY thất bại, đơn đã hủy',
+                );
+            }
         }
 
         $query = ['payment' => $paid ? 'success' : 'failed'];
@@ -85,6 +101,11 @@ class VnpayController extends Controller
                     DB::table('products')
                         ->where('id', $item->product_id)
                         ->increment('stock', $item->quantity);
+                }
+                $order->status = 4;
+                $order->save();
+                if ($order->coupon_code) {
+                    Coupon::query()->where('code', $order->coupon_code)->where('used_count', '>', 0)->decrement('used_count');
                 }
             }
 

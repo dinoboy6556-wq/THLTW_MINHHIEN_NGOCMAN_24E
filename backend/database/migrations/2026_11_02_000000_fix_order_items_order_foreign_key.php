@@ -8,6 +8,10 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
+        if (DB::connection()->getDriverName() !== 'mysql') {
+            return;
+        }
+
         $this->dropOrderForeignKeys();
 
         $orderId = DB::selectOne(
@@ -37,6 +41,10 @@ return new class extends Migration {
 
     private function dropOrderForeignKeys(): void
     {
+        if (DB::connection()->getDriverName() !== 'mysql') {
+            return;
+        }
+
         $foreignKeys = DB::select(
             'SELECT CONSTRAINT_NAME FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ? AND REFERENCED_TABLE_NAME IS NOT NULL',
             ['order_items', 'order_id'],

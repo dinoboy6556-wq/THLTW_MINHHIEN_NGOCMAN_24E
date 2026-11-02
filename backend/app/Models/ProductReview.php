@@ -12,6 +12,8 @@ class ProductReview extends Model
         'user_id',
         'rating',
         'comment',
+        'image_path',
+        'status',
     ];
 
     protected function casts(): array
@@ -21,9 +23,18 @@ class ProductReview extends Model
         ];
     }
 
+    protected $appends = ['image_url'];
+
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function getImageUrlAttribute(): ?string
+    {
+        return $this->image_path
+            ? '/backend-storage/' . ltrim($this->image_path, '/')
+            : null;
     }
 
     public function user(): BelongsTo

@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  distDir: process.env.NEXT_BUILD_DIR || '.next',
   // Allow opening the dev site from this machine's LAN address.
   allowedDevOrigins: ['192.168.1.76'],
   async rewrites() {

@@ -46,4 +46,14 @@ class Product extends Model
     {
         return $this->hasMany(ProductReview::class);
     }
+
+    public function favorites()
+    {
+        return $this->hasMany(ProductFavorite::class);
+    }
+
+    public function reactions()
+    {
+        return $this->hasMany(ProductReaction::class);
+    }
 }
