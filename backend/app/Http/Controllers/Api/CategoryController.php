@@ -6,19 +6,32 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\CategoryResource;
 use App\Models\Category;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class CategoryController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $categories = Category::parentsOnly()
-            ->active()
-            ->with([
-                'children' => function ($query) {
-                    $query->active();
-                }
-            ])
-            ->get();
+        $query = Category::active();
+
+        // Public listing/filter pages need every active category, including
+        // child categories. Keep the existing tree response for the homepage.
+        if ($request->boolean('flat')) {
+            $categories = $query
+                ->with('parent:id,name')
+                ->orderByRaw('parent_id IS NOT NULL')
+                ->orderBy('name')
+                ->get();
+        } else {
+            $categories = $query
+                ->parentsOnly()
+                ->with([
+                    'children' => function ($query) {
+                        $query->active();
+                    }
+                ])
+                ->get();
+        }
 
         return response()->json([
             'success' => true,

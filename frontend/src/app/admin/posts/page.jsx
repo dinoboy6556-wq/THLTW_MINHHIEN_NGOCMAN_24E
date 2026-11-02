@@ -30,8 +30,19 @@ export default function AdminPostsPage() {
     setApiError("");
 
     try {
-      const response = await postService.getAdminAll({ per_page: 100 });
-      setPosts(response.data?.data?.data ?? []);
+      const perPage = 100;
+      const firstPage = await postService.getAdminAll({ per_page: perPage, page: 1 });
+      const paginator = firstPage.data?.data;
+      const remainingPages = await Promise.all(
+        Array.from(
+          { length: Math.max(0, Number(paginator?.last_page || 1) - 1) },
+          (_, index) => postService.getAdminAll({ per_page: perPage, page: index + 2 }),
+        ),
+      );
+      setPosts([
+        ...(Array.isArray(paginator?.data) ? paginator.data : []),
+        ...remainingPages.flatMap((response) => response.data?.data?.data ?? []),
+      ]);
     } catch (error) {
       const message = getErrorMessage(error);
       console.error("Lỗi tải danh sách bài viết:", message);

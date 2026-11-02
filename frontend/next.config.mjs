@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Allow opening the dev site from this machine's LAN address.
+  allowedDevOrigins: ['192.168.1.76'],
   async rewrites() {
     const apiUrl = new URL(
       process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api",

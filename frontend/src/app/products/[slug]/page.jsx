@@ -17,6 +17,9 @@ export default function ProductDetailPage() {
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
   const [reviews, setReviews] = useState([]);
+  const [reviewPage, setReviewPage] = useState(1);
+  const [reviewLastPage, setReviewLastPage] = useState(1);
+  const [loadingMoreReviews, setLoadingMoreReviews] = useState(false);
   const [reviewSummary, setReviewSummary] = useState({ average: 0, count: 0 });
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [relatedLoading, setRelatedLoading] = useState(false);
@@ -63,15 +66,18 @@ export default function ProductDetailPage() {
       if (isMounted) {
         setReviewLoading(true);
         setReviews([]);
+        setReviewPage(1);
+        setReviewLastPage(1);
         setReviewSummary({ average: 0, count: 0 });
       }
     });
 
     productService
-      .getReviews(product.id)
+      .getReviews(product.id, { page: 1, per_page: 10 })
       .then((response) => {
         if (!isMounted) return;
         setReviews(response.data?.data?.data || []);
+        setReviewLastPage(Number(response.data?.data?.last_page || 1));
         setReviewSummary(response.data?.summary || { average: 0, count: 0 });
       })
       .catch((requestError) => {
@@ -91,6 +97,27 @@ export default function ProductDetailPage() {
       isMounted = false;
     };
   }, [product?.id]);
+
+  const loadMoreReviews = async () => {
+    if (!product?.id || loadingMoreReviews || reviewPage >= reviewLastPage) return;
+
+    const nextPage = reviewPage + 1;
+    setLoadingMoreReviews(true);
+    try {
+      const response = await productService.getReviews(product.id, {
+        page: nextPage,
+        per_page: 10,
+      });
+      const nextReviews = response.data?.data?.data || [];
+      setReviews((currentReviews) => [...currentReviews, ...nextReviews]);
+      setReviewPage(nextPage);
+      setReviewLastPage(Number(response.data?.data?.last_page || nextPage));
+    } catch (requestError) {
+      setReviewError(getErrorMessage(requestError));
+    } finally {
+      setLoadingMoreReviews(false);
+    }
+  };
 
   useEffect(() => {
     if (!product?.id) return;
@@ -457,6 +484,19 @@ export default function ProductDetailPage() {
               </p>
             )}
           </div>
+
+          {reviewPage < reviewLastPage && (
+            <div className="mt-4 text-center">
+              <button
+                type="button"
+                onClick={loadMoreReviews}
+                disabled={loadingMoreReviews}
+                className="rounded-lg border border-indigo-200 px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50 disabled:opacity-60"
+              >
+                {loadingMoreReviews ? "Đang tải..." : "Xem thêm đánh giá"}
+              </button>
+            </div>
+          )}
 
           <div className="mt-8 border-t border-gray-100 pt-6">
             <h3 className="text-base font-bold text-gray-900">Chia sẻ đánh giá của bạn</h3>

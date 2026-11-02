@@ -23,29 +23,23 @@ class VnpayController extends Controller
             return response()->json(['RspCode' => '97', 'Message' => 'Invalid signature']);
         }
 
-        $result = DB::transaction(function () use ($params): array {
-            $order = Order::query()->lockForUpdate()->find($params['vnp_TxnRef'] ?? null);
-            if (!$order || $order->payment_method !== 'vnpay') {
-                return ['RspCode' => '01', 'Message' => 'Order not found'];
-            }
+        $order = Order::query()->find($params['vnp_TxnRef'] ?? null);
+        if (!$order || $order->payment_method !== 'vnpay') {
+            return response()->json(['RspCode' => '01', 'Message' => 'Order not found']);
+        }
 
-            $expectedAmount = (int) round((float) $order->total_amount) * 100;
-            if ((int) ($params['vnp_Amount'] ?? 0) !== $expectedAmount) {
-                return ['RspCode' => '04', 'Message' => 'Invalid amount'];
-            }
+        $expectedAmount = (int) round((float) $order->total_amount) * 100;
+        if ((int) ($params['vnp_Amount'] ?? 0) !== $expectedAmount) {
+            return response()->json(['RspCode' => '04', 'Message' => 'Invalid amount']);
+        }
 
-            if ($order->payment_status === 'paid') {
-                return ['RspCode' => '02', 'Message' => 'Order already confirmed'];
-            }
+        $paid = ($params['vnp_ResponseCode'] ?? null) === '00'
+            && ($params['vnp_TransactionStatus'] ?? null) === '00';
+        $updated = $this->finalizePayment($order->id, $paid);
 
-            $paid = ($params['vnp_ResponseCode'] ?? null) === '00'
-                && ($params['vnp_TransactionStatus'] ?? null) === '00';
-            $order->forceFill(['payment_status' => $paid ? 'paid' : 'failed'])->save();
-
-            return ['RspCode' => '00', 'Message' => 'Confirm Success'];
-        });
-
-        return response()->json($result);
+        return response()->json($updated
+            ? ['RspCode' => '00', 'Message' => 'Confirm Success']
+            : ['RspCode' => '02', 'Message' => 'Order already confirmed']);
     }
 
     public function returnFromGateway(Request $request): RedirectResponse
@@ -62,6 +56,10 @@ class VnpayController extends Controller
             && ($params['vnp_ResponseCode'] ?? null) === '00'
             && ($params['vnp_TransactionStatus'] ?? null) === '00';
 
+        if ($amountMatches) {
+            $this->finalizePayment($order->id, $paid);
+        }
+
         $query = ['payment' => $paid ? 'success' : 'failed'];
         if ($order && $amountMatches) {
             $query['order_code'] = $order->order_code;
@@ -70,5 +68,27 @@ class VnpayController extends Controller
         return redirect()->away(
             rtrim(config('services.vnpay.frontend_url'), '/') . '/cart?' . http_build_query($query)
         );
+    }
+
+    private function finalizePayment(int $orderId, bool $paid): bool
+    {
+        return DB::transaction(function () use ($orderId, $paid): bool {
+            $order = Order::query()->lockForUpdate()->find($orderId);
+            if (!$order || $order->payment_method !== 'vnpay' || $order->payment_status !== 'pending') {
+                return false;
+            }
+
+            $order->forceFill(['payment_status' => $paid ? 'paid' : 'failed'])->save();
+
+            if (!$paid) {
+                foreach ($order->items()->get(['product_id', 'quantity']) as $item) {
+                    DB::table('products')
+                        ->where('id', $item->product_id)
+                        ->increment('stock', $item->quantity);
+                }
+            }
+
+            return true;
+        });
     }
 }

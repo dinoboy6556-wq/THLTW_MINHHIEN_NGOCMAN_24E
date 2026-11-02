@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import productService from "@/services/productService";
 import categoryService from "@/services/categoryService";
 import brandService from "@/services/brandService";
@@ -41,36 +41,34 @@ export default function ProductForm({ editingProduct, onSuccess, onCancel }) {
     return [];
   };
 
-  // Tải danh sách Danh mục và Thương hiệu cho Dropdown
-  const fetchDropdownData = useCallback(async () => {
-    try {
-      const [resCate, resBrand] = await Promise.all([
-        categoryService.getAll(),
-        brandService.getAll(),
-      ]);
-
-      setCategories(extractArray(resCate.data));
-      setBrands(extractArray(resBrand.data));
-    } catch (err) {
-      console.error("Lỗi tải dropdown:", getErrorMessage(err));
-      setCategories([]);
-      setBrands([]);
-    }
-  }, []);
-
   // 1. Tải danh sách Danh mục & Thương hiệu (Đã sửa lỗi ESLint)
   useEffect(() => {
     let isMounted = true;
 
     const loadDropdowns = async () => {
       try {
-        const [resCate, resBrand] = await Promise.all([
-          categoryService.getAll(),
+        const perPage = 100;
+        const [firstCategoryPage, resBrand] = await Promise.all([
+          categoryService.getAdminAll({ per_page: perPage, page: 1 }),
           brandService.getAll(),
         ]);
+        const lastCategoryPage = Number(
+          firstCategoryPage.data?.data?.last_page ?? 1,
+        );
+        const remainingCategoryPages = await Promise.all(
+          Array.from({ length: Math.max(0, lastCategoryPage - 1) }, (_, index) =>
+            categoryService.getAdminAll({ per_page: perPage, page: index + 2 }),
+          ),
+        );
+        const allCategories = [
+          ...extractArray(firstCategoryPage.data),
+          ...remainingCategoryPages.flatMap((response) =>
+            extractArray(response.data),
+          ),
+        ];
 
         if (isMounted) {
-          setCategories(extractArray(resCate.data));
+          setCategories(allCategories);
           setBrands(extractArray(resBrand.data));
         }
       } catch (err) {
@@ -123,7 +121,7 @@ export default function ProductForm({ editingProduct, onSuccess, onCancel }) {
     const productData = {
       ...formData,
       cate_id: Number(formData.cate_id),
-      brand_id: Number(formData.brand_id),
+      brand_id: formData.brand_id ? Number(formData.brand_id) : null,
       price: Number(formData.price),
       promo_price: formData.promo_price ? Number(formData.promo_price) : null,
       stock: Number(formData.stock),
@@ -219,7 +217,9 @@ export default function ProductForm({ editingProduct, onSuccess, onCancel }) {
             <option value="">-- Chọn danh mục --</option>
             {categoryList.map((c) => (
               <option key={c.id} value={c.id}>
+                {c.parent?.name ? `${c.parent.name} / ` : ""}
                 {c.name}
+                {Number(c.status) === 0 ? " (Đang ẩn)" : ""}
               </option>
             ))}
           </select>

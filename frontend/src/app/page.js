@@ -34,7 +34,13 @@ export default function HomePage() {
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
   const [articles, setArticles] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [dataErrors, setDataErrors] = useState([]);
+  const [loadingSections, setLoadingSections] = useState({
+    products: true,
+    saleProducts: true,
+    categories: true,
+    brands: true,
+  });
   const [searchTerm, setSearchTerm] = useState("");
 
   // Hàm bóc tách mảng an toàn theo cấu trúc JSON Laravel API ({ success, message, data: [...] })
@@ -47,46 +53,105 @@ export default function HomePage() {
     return [];
   };
 
+  const fetchAllProductPages = async (fetchPage) => {
+    const perPage = 100;
+    const firstPage = await fetchPage({ per_page: perPage, page: 1 });
+    const lastPage = Number(
+      firstPage.data?.pagination?.last_page ??
+        firstPage.data?.meta?.last_page ??
+        firstPage.data?.data?.last_page ??
+        1,
+    );
+    const remainingPages = await Promise.all(
+      Array.from({ length: Math.max(0, lastPage - 1) }, (_, index) =>
+        fetchPage({ per_page: perPage, page: index + 2 }),
+      ),
+    );
+
+    return [
+      ...extractArray(firstPage.data),
+      ...remainingPages.flatMap((response) => extractArray(response.data)),
+    ];
+  };
+
   // Tải dữ liệu trang chủ
   useEffect(() => {
     let isMounted = true;
 
-    const fetchHomeData = async () => {
-      try {
-        const [resProd, resSale, resCat, resBrand] = await Promise.all([
-          productService.getAll(),
-          productService.getOnSale(),
-          categoryService.getAll(),
-          brandService.getAll(),
-        ]);
+    const fetchHomeData = () => {
+      const requests = [
+        {
+          label: "Sản phẩm",
+          key: "products",
+          request: () => fetchAllProductPages(productService.getAll),
+          setData: setProducts,
+          map: (data) => data,
+        },
+        {
+          label: "Sản phẩm khuyến mãi",
+          key: "saleProducts",
+          request: () => fetchAllProductPages(productService.getOnSale),
+          setData: setSaleProducts,
+          map: (data) => data,
+        },
+        {
+          label: "Danh mục",
+          key: "categories",
+          request: () => categoryService.getAll(),
+          setData: setCategories,
+          map: extractArray,
+        },
+        {
+          label: "Thương hiệu",
+          key: "brands",
+          request: () => brandService.getAll(),
+          setData: setBrands,
+          map: extractArray,
+        },
+        {
+          label: "Bài viết",
+          request: () => postService.getPublished(),
+          setData: setArticles,
+          map: (data) => (data?.data || []).map(mapPostToArticle),
+        },
+      ];
 
-        if (isMounted) {
-          setProducts(extractArray(resProd.data));
-          setSaleProducts(extractArray(resSale.data));
-          setCategories(extractArray(resCat.data));
-          setBrands(extractArray(resBrand.data));
-        }
-      } catch (err) {
-        console.error("Lỗi tải dữ liệu trang chủ:", getErrorMessage(err));
-      } finally {
-        if (isMounted) setLoading(false);
-      }
+      // Let each homepage section render as soon as its own API responds. A
+      // slow endpoint must not hold back data returned by the other endpoints.
+      requests.forEach((section) => {
+        section
+          .request()
+          .then((result) => {
+            // Product pagination returns an array directly; the other
+            // services return an Axios response whose payload is in `.data`.
+            const payload = Array.isArray(result) ? result : result?.data;
+            const mappedData = section.map(payload);
+            if (isMounted) {
+              section.setData(Array.isArray(mappedData) ? mappedData : []);
+            }
+          })
+          .catch((error) => {
+            const message = getErrorMessage(error);
+            if (isMounted) {
+              section.setData([]);
+              setDataErrors((current) => [
+                ...current.filter((item) => !item.startsWith(`${section.label}:`)),
+                `${section.label}: ${message}`,
+              ]);
+              console.warn(`Lỗi tải ${section.label.toLowerCase()} trang chủ:`, message);
+            }
+          })
+          .finally(() => {
+            if (isMounted && section.key) {
+              setLoadingSections((current) => ({ ...current, [section.key]: false }));
+            }
+          });
+      });
     };
 
     queueMicrotask(() => {
       fetchHomeData();
     });
-
-    postService
-      .getPublished()
-      .then((response) => {
-        if (isMounted) {
-          setArticles((response.data?.data || []).map(mapPostToArticle));
-        }
-      })
-      .catch((err) => {
-        console.error("Lỗi tải bài viết trang chủ:", getErrorMessage(err));
-      });
 
     return () => {
       isMounted = false;
@@ -94,6 +159,7 @@ export default function HomePage() {
   }, []);
 
   const productList = Array.isArray(products) ? products : [];
+  const saleProductList = Array.isArray(saleProducts) ? saleProducts : [];
   const categoryList = Array.isArray(categories) ? categories : [];
   const brandList = Array.isArray(brands) ? brands : [];
 
@@ -318,6 +384,20 @@ export default function HomePage() {
 
       {/* NỘI DUNG CHÍNH */}
       <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 flex flex-col gap-12">
+        {dataErrors.length > 0 && (
+          <div
+            role="status"
+            className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+          >
+            <p className="font-semibold">Một số dữ liệu chưa tải được:</p>
+            <ul className="mt-1 list-inside list-disc">
+              {dataErrors.map((error) => (
+                <li key={error}>{error}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {/* KHU VỰC KẾT QUẢ TÌM KIẾM */}
         {searchTerm.trim() !== "" ? (
           <section className="flex flex-col gap-6">
@@ -364,7 +444,7 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {loading ? (
+              {loadingSections.categories ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
                   {[...Array(6)].map((_, i) => (
                     <div
@@ -398,7 +478,7 @@ export default function HomePage() {
             </section>
 
             {/* 3. SẢN PHẨM KHUYẾN MÃI (HOT SALE) */}
-            {saleProducts.length > 0 && (
+            {saleProductList.length > 0 && (
               <section className="bg-gradient-to-r from-red-500/10 via-amber-500/5 to-red-500/10 p-6 rounded-3xl border border-red-100 flex flex-col gap-6">
                 <div className="flex justify-between items-end border-b border-red-200/60 pb-4">
                   <div className="flex items-center gap-2">
@@ -409,7 +489,7 @@ export default function HomePage() {
                       </h2>
                       <p className="text-xs text-gray-500 font-medium">
                         Cơ hội mua sắm công nghệ với giá siêu hời (
-                        {saleProducts.length} deal hot)
+                        {saleProductList.length} deal hot)
                       </p>
                     </div>
                   </div>
@@ -422,7 +502,7 @@ export default function HomePage() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-                  {saleProducts
+                  {saleProductList
                     .slice(0, 8)
                     .map((p) => renderProductCard(p, true))}
                 </div>
@@ -448,7 +528,7 @@ export default function HomePage() {
                 </Link>
               </div>
 
-              {loading ? (
+              {loadingSections.products ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
                   {[...Array(4)].map((_, i) => (
                     <div
@@ -479,7 +559,7 @@ export default function HomePage() {
                 </p>
               </div>
 
-              {loading ? (
+              {loadingSections.brands ? (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   {[...Array(4)].map((_, i) => (
                     <div

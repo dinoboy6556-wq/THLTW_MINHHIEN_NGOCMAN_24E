@@ -52,7 +52,7 @@ export default function ProductsPage() {
       try {
         const [firstProductPage, resCat, resBrand] = await Promise.all([
           productService.getAll({ per_page: 100 }),
-          categoryService.getAll(),
+          categoryService.getAll({ flat: true }),
           brandService.getAll(),
         ]);
 

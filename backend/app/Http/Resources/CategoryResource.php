@@ -15,6 +15,10 @@ class CategoryResource extends JsonResource
             'slug' => $this->slug,
             'description' => $this->description,
             'image' => $this->image ? asset($this->image) : null,
+            'parent' => $this->whenLoaded('parent', fn () => $this->parent ? [
+                'id' => $this->parent->id,
+                'name' => $this->parent->name,
+            ] : null),
             'children' => CategoryResource::collection($this->whenLoaded('children')),
         ];
     }

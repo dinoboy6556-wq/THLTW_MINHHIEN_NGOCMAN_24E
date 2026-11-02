@@ -59,7 +59,7 @@ class AdminTrashController extends Controller
                 }
             }
 
-            $trashedItems = $query->orderByDesc('deleted_at')->limit(100)->get();
+            $trashedItems = $query->orderByDesc('deleted_at')->get();
 
             foreach ($trashedItems as $item) {
                 $items->push([

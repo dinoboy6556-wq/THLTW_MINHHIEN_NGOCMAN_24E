@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class AdminProductController extends Controller
 {
@@ -51,7 +52,12 @@ class AdminProductController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:200|unique:products,name',
+            'name' => [
+                'required',
+                'string',
+                'max:200',
+                Rule::unique('products', 'name')->whereNull('deleted_at'),
+            ],
             'cate_id' => 'required|exists:categories,id',
             'brand_id' => 'nullable|exists:brands,id',
             'price' => 'required|numeric|min:0',
@@ -73,7 +79,7 @@ class AdminProductController extends Controller
 
         $product = Product::create([
             'name' => $request->name,
-            'slug' => Str::slug($request->name),
+            'slug' => $this->uniqueSlug($request->name),
             'cate_id' => $request->cate_id,
             'brand_id' => $request->brand_id,
             'price' => $request->price,
@@ -109,8 +115,17 @@ class AdminProductController extends Controller
         if (!$product)
             return response()->json(['success' => false, 'message' => 'Không tìm thấy sản phẩm'], 404);
 
+        $nameRules = ['required', 'string', 'max:200'];
+        // Allow saving other fields when the product keeps its existing name,
+        // even if legacy duplicate names already exist in the database.
+        if ($request->input('name') !== $product->name) {
+            $nameRules[] = Rule::unique('products', 'name')
+                ->ignore($product->getKey())
+                ->whereNull('deleted_at');
+        }
+
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:200|unique:products,name,' . $id,
+            'name' => $nameRules,
             'cate_id' => 'required|exists:categories,id',
             'brand_id' => 'nullable|exists:brands,id',
             'price' => 'required|numeric|min:0',
@@ -133,7 +148,7 @@ class AdminProductController extends Controller
 
         $product->update([
             'name' => $request->name,
-            'slug' => Str::slug($request->name),
+            'slug' => $this->uniqueSlug($request->name, (int) $product->getKey()),
             'cate_id' => $request->cate_id,
             'brand_id' => $request->brand_id,
             'price' => $request->price,
@@ -192,5 +207,34 @@ class AdminProductController extends Controller
             : Storage::disk('public')->url($path);
 
         return asset($url);
+    }
+
+    private function uniqueSlug(string $name, ?int $ignoreId = null): string
+    {
+        $baseSlug = Str::slug($name) ?: 'product';
+        $slug = $baseSlug;
+
+        if (!$this->slugExists($slug, $ignoreId)) {
+            return $slug;
+        }
+
+        $suffix = $ignoreId !== null ? (string) $ignoreId : Str::lower(Str::random(6));
+        $slug = "{$baseSlug}-{$suffix}";
+        $counter = 2;
+
+        while ($this->slugExists($slug, $ignoreId)) {
+            $slug = "{$baseSlug}-{$suffix}-{$counter}";
+            $counter++;
+        }
+
+        return $slug;
+    }
+
+    private function slugExists(string $slug, ?int $ignoreId = null): bool
+    {
+        return Product::withTrashed()
+            ->where('slug', $slug)
+            ->when($ignoreId !== null, fn ($query) => $query->where('id', '!=', $ignoreId))
+            ->exists();
     }
 }

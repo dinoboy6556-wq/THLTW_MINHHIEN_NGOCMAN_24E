@@ -34,9 +34,27 @@ export default function AdminProductPage() {
     setLoading(true);
     setApiError("");
     try {
-      const res = await productService.getAll();
-      const extractedList = extractArray(res.data);
-      setProducts(extractedList);
+      const perPage = 100;
+      const firstPage = await productService.getAdminAll({
+        per_page: perPage,
+        page: 1,
+      });
+      const firstPageProducts = extractArray(firstPage.data);
+      const paginator = firstPage.data?.data;
+      const lastPage = Number(paginator?.last_page || 1);
+      const remainingPages = await Promise.all(
+        Array.from({ length: Math.max(0, lastPage - 1) }, (_, index) =>
+          productService.getAdminAll({
+            per_page: perPage,
+            page: index + 2,
+          }),
+        ),
+      );
+
+      setProducts([
+        ...firstPageProducts,
+        ...remainingPages.flatMap((response) => extractArray(response.data)),
+      ]);
     } catch (err) {
       const errorMsg = getErrorMessage(err);
       console.error("Lỗi API Sản phẩm:", errorMsg);

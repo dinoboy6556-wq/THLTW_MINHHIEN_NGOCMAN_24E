@@ -37,9 +37,18 @@ export default function AdminCategoryPage() {
     setLoading(true);
     setApiError("");
     try {
-      const res = await categoryService.getAll();
-      const extractedList = extractArray(res.data);
-      setCategories(extractedList);
+      const perPage = 100;
+      const firstPage = await categoryService.getAdminAll({ per_page: perPage, page: 1 });
+      const paginator = firstPage.data?.data;
+      const remainingPages = await Promise.all(
+        Array.from({ length: Math.max(0, Number(paginator?.last_page || 1) - 1) }, (_, index) =>
+          categoryService.getAdminAll({ per_page: perPage, page: index + 2 }),
+        ),
+      );
+      setCategories([
+        ...extractArray(firstPage.data),
+        ...remainingPages.flatMap((response) => extractArray(response.data)),
+      ]);
     } catch (err) {
       const errorMsg = getErrorMessage(err);
       console.error("Lỗi API:", errorMsg);

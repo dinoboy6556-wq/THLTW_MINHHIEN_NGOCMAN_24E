@@ -40,9 +40,18 @@ export default function AdminBrandPage() {
     setLoading(true);
     setApiError("");
     try {
-      const res = await brandService.getAll();
-      const extractedList = extractArray(res.data);
-      setBrands(extractedList);
+      const perPage = 100;
+      const firstPage = await brandService.getAdminAll({ per_page: perPage, page: 1 });
+      const paginator = firstPage.data?.data;
+      const remainingPages = await Promise.all(
+        Array.from({ length: Math.max(0, Number(paginator?.last_page || 1) - 1) }, (_, index) =>
+          brandService.getAdminAll({ per_page: perPage, page: index + 2 }),
+        ),
+      );
+      setBrands([
+        ...extractArray(firstPage.data),
+        ...remainingPages.flatMap((response) => extractArray(response.data)),
+      ]);
     } catch (err) {
       const errorMsg = getErrorMessage(err);
       console.error("Lỗi API Thương hiệu:", errorMsg);
