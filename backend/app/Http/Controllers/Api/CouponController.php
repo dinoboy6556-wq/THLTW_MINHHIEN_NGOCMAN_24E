@@ -21,10 +21,14 @@ class CouponController extends Controller
             ->where('code', mb_strtoupper(trim($validated['code'])))
             ->first();
 
-        if (!$coupon || !$coupon->isUsable((float) $validated['subtotal'])) {
+        if (!$coupon) {
             throw ValidationException::withMessages([
-                'code' => 'Mã giảm giá không hợp lệ, đã hết hạn hoặc không đủ điều kiện sử dụng.',
+                'code' => 'Không tìm thấy mã giảm giá này.',
             ]);
+        }
+
+        if ($reason = $coupon->unusableReason((float) $validated['subtotal'])) {
+            throw ValidationException::withMessages(['code' => $reason]);
         }
 
         return response()->json([

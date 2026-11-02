@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="560" viewBox="0 0 1600 560" role="img" aria-labelledby="title desc">
+  <title id="title">MyShop — Công nghệ cho ngày mới</title>
+  <desc id="desc">Banner cửa hàng công nghệ với điện thoại, tai nghe và đồng hồ thông minh</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#10152e"/><stop offset=".55" stop-color="#2636a8"/><stop offset="1" stop-color="#6327c8"/></linearGradient>
+    <linearGradient id="screen" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#27d5e8"/><stop offset="1" stop-color="#5650f5"/></linearGradient>
+    <filter id="shadow" x="-.3" y="-.3" width="1.6" height="1.8"><feDropShadow dx="0" dy="24" stdDeviation="20" flood-color="#05091c" flood-opacity=".5"/></filter>
+  </defs>
+  <rect width="1600" height="560" rx="34" fill="url(#bg)"/>
+  <circle cx="1330" cy="80" r="260" fill="#76e7ff" opacity=".08"/><circle cx="1090" cy="500" r="290" fill="#a99aff" opacity=".10"/>
+  <path d="M0 450 Q360 350 650 560H0Z" fill="#fff" opacity=".035"/><path d="M900 0h700v560h-380z" fill="#fff" opacity=".025"/>
+  <g font-family="Arial,Helvetica,sans-serif" fill="#fff">
+    <text x="100" y="104" font-size="22" font-weight="700" letter-spacing="5" fill="#9be8ff">MYSHOP · TECH DAYS</text>
+    <text x="96" y="218" font-size="68" font-weight="800">Công nghệ</text>
+    <text x="96" y="296" font-size="68" font-weight="800" fill="#9be8ff">cho ngày mới</text>
+    <text x="100" y="354" font-size="25" fill="#dbe4ff">Khám phá thiết bị chính hãng, chọn điều bạn yêu thích.</text>
+    <rect x="100" y="404" width="218" height="62" rx="18" fill="#fff"/><text x="139" y="444" font-size="21" font-weight="700" fill="#3730a3">KHÁM PHÁ NGAY</text>
+  </g>
+  <g filter="url(#shadow)" transform="translate(990 58) rotate(9 160 220)">
+    <rect x="60" y="12" width="240" height="438" rx="42" fill="#111827" stroke="#9ca3af" stroke-width="3"/>
+    <rect x="73" y="32" width="214" height="396" rx="30" fill="url(#screen)"/>
+    <circle cx="180" cy="54" r="5" fill="#dbeafe"/>
+    <path d="M90 300 Q145 190 210 260T280 180V410H90Z" fill="#fff" opacity=".22"/>
+    <circle cx="143" cy="152" r="38" fill="#fff" opacity=".88"/><circle cx="222" cy="205" r="27" fill="#b7ffef" opacity=".8"/>
+    <rect x="104" y="330" width="152" height="14" rx="7" fill="#fff" opacity=".78"/><rect x="126" y="356" width="108" height="10" rx="5" fill="#fff" opacity=".5"/>
+  </g>
+  <g filter="url(#shadow)" transform="translate(1320 185) rotate(-12)">
+    <rect x="18" y="0" width="120" height="205" rx="56" fill="#dbeafe" opacity=".96"/><rect x="0" y="35" width="155" height="146" rx="46" fill="#202943" stroke="#a5b4fc" stroke-width="4"/>
+    <circle cx="77" cy="108" r="56" fill="#0f172a" stroke="#60d7f5" stroke-width="4"/><text x="77" y="117" text-anchor="middle" font-family="Arial" font-size="24" fill="#e0f2fe">10:08</text>
+  </g>
+  <g filter="url(#shadow)" transform="translate(1270 390) rotate(12)"><path d="M25 20q0-20 20-20h54q20 0 20 20v25H25zM25 110h94v25q0 20-20 20H45q-20 0-20-20z" fill="#e2e8f0"/><rect x="0" y="35" width="144" height="80" rx="38" fill="#111827" stroke="#64748b" stroke-width="4"/><circle cx="72" cy="75" r="26" fill="#334155"/><circle cx="72" cy="75" r="13" fill="#38bdf8"/></g>
+</svg>

@@ -5,7 +5,13 @@ import couponService from "@/services/couponService";
 import { getErrorMessage } from "@/lib/axios";
 
 const emptyForm = { code: "", discount_type: "percent", discount_value: "", minimum_order_amount: "0", maximum_discount_amount: "", usage_limit: "", starts_at: "", ends_at: "", is_active: true };
-const localDate = (value) => value ? new Date(value).toISOString().slice(0, 16) : "";
+const localDate = (value) => {
+  if (!value) return "";
+  const date = new Date(value);
+  const pad = (part) => String(part).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+};
+const utcDate = (value) => value ? new Date(value).toISOString() : null;
 
 export default function AdminCouponsPage() {
   const [coupons, setCoupons] = useState([]);
@@ -37,8 +43,8 @@ export default function AdminCouponsPage() {
       minimum_order_amount: Number(form.minimum_order_amount || 0),
       maximum_discount_amount: form.maximum_discount_amount ? Number(form.maximum_discount_amount) : null,
       usage_limit: form.usage_limit ? Number(form.usage_limit) : null,
-      starts_at: form.starts_at || null,
-      ends_at: form.ends_at || null,
+      starts_at: utcDate(form.starts_at),
+      ends_at: utcDate(form.ends_at),
     };
     try {
       if (editingId) await couponService.update(editingId, payload);
@@ -78,12 +84,12 @@ export default function AdminCouponsPage() {
     }
   };
 
-  const fieldClass = "w-full rounded-lg border border-gray-300 px-3 py-2 text-sm";
+  const fieldClass = "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400";
   return (
     <div className="flex flex-col gap-6">
       <header><h1 className="text-2xl font-bold text-gray-900">Mã giảm giá</h1><p className="mt-1 text-sm text-gray-500">Tạo mã theo phần trăm hoặc số tiền, đặt thời hạn và giới hạn lượt dùng.</p></header>
       {error && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
-      <form onSubmit={saveCoupon} className="grid gap-4 rounded-xl border bg-white p-5 shadow-sm sm:grid-cols-2 lg:grid-cols-4">
+      <form onSubmit={saveCoupon} className="grid gap-4 rounded-xl border bg-white p-5 text-gray-900 shadow-sm sm:grid-cols-2 lg:grid-cols-4">
         <label className="text-sm">Mã<input required maxLength={40} value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} className={`${fieldClass} mt-1 uppercase`} placeholder="WELCOME10" /></label>
         <label className="text-sm">Kiểu giảm<select value={form.discount_type} onChange={(e) => setForm({ ...form, discount_type: e.target.value })} className={`${fieldClass} mt-1`}><option value="percent">Phần trăm (%)</option><option value="fixed">Số tiền (đ)</option></select></label>
         <label className="text-sm">Giá trị giảm<input required type="number" min="0.01" step="0.01" value={form.discount_value} onChange={(e) => setForm({ ...form, discount_value: e.target.value })} className={`${fieldClass} mt-1`} /></label>

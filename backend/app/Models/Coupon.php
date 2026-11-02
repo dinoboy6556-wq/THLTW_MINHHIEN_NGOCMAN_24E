@@ -35,13 +35,20 @@ class Coupon extends Model
 
     public function isUsable(float $subtotal): bool
     {
-        $now = now();
+        return $this->unusableReason($subtotal) === null;
+    }
 
-        return $this->is_active
-            && $subtotal >= (float) $this->minimum_order_amount
-            && (!$this->starts_at || $this->starts_at->lte($now))
-            && (!$this->ends_at || $this->ends_at->gte($now))
-            && ($this->usage_limit === null || $this->used_count < $this->usage_limit);
+    public function unusableReason(float $subtotal): ?string
+    {
+        $now = now();
+        if (!$this->is_active) return 'Mã giảm giá hiện đã bị tắt.';
+        if ($subtotal < (float) $this->minimum_order_amount) {
+            return 'Đơn hàng tối thiểu để dùng mã là ' . number_format((float) $this->minimum_order_amount, 0, ',', '.') . ' đ.';
+        }
+        if ($this->starts_at && $this->starts_at->gt($now)) return 'Mã giảm giá chưa đến thời gian bắt đầu.';
+        if ($this->ends_at && $this->ends_at->lt($now)) return 'Mã giảm giá đã hết hạn.';
+        if ($this->usage_limit !== null && $this->used_count >= $this->usage_limit) return 'Mã giảm giá đã hết lượt sử dụng.';
+        return null;
     }
 
     public function discountFor(float $subtotal): float
