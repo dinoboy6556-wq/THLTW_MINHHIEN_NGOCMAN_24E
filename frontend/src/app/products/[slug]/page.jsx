@@ -17,7 +17,12 @@ export default function ProductDetailPage() {
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
   const [reviews, setReviews] = useState([]);
+  const [reviewPage, setReviewPage] = useState(1);
+  const [reviewLastPage, setReviewLastPage] = useState(1);
+  const [loadingMoreReviews, setLoadingMoreReviews] = useState(false);
   const [reviewSummary, setReviewSummary] = useState({ average: 0, count: 0 });
+  const [relatedProducts, setRelatedProducts] = useState([]);
+  const [relatedLoading, setRelatedLoading] = useState(false);
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
   const [reviewLoading, setReviewLoading] = useState(true);
@@ -57,12 +62,22 @@ export default function ProductDetailPage() {
     if (!product?.id) return;
 
     let isMounted = true;
+    queueMicrotask(() => {
+      if (isMounted) {
+        setReviewLoading(true);
+        setReviews([]);
+        setReviewPage(1);
+        setReviewLastPage(1);
+        setReviewSummary({ average: 0, count: 0 });
+      }
+    });
 
     productService
-      .getReviews(product.id)
+      .getReviews(product.id, { page: 1, per_page: 10 })
       .then((response) => {
         if (!isMounted) return;
         setReviews(response.data?.data?.data || []);
+        setReviewLastPage(Number(response.data?.data?.last_page || 1));
         setReviewSummary(response.data?.summary || { average: 0, count: 0 });
       })
       .catch((requestError) => {
@@ -82,6 +97,73 @@ export default function ProductDetailPage() {
       isMounted = false;
     };
   }, [product?.id]);
+
+  const loadMoreReviews = async () => {
+    if (!product?.id || loadingMoreReviews || reviewPage >= reviewLastPage) return;
+
+    const nextPage = reviewPage + 1;
+    setLoadingMoreReviews(true);
+    try {
+      const response = await productService.getReviews(product.id, {
+        page: nextPage,
+        per_page: 10,
+      });
+      const nextReviews = response.data?.data?.data || [];
+      setReviews((currentReviews) => [...currentReviews, ...nextReviews]);
+      setReviewPage(nextPage);
+      setReviewLastPage(Number(response.data?.data?.last_page || nextPage));
+    } catch (requestError) {
+      setReviewError(getErrorMessage(requestError));
+    } finally {
+      setLoadingMoreReviews(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!product?.id) return;
+
+    let isMounted = true;
+    const categoryId = product.category?.id;
+    const brandId = product.brand?.id;
+
+    const loadRelatedProducts = async () => {
+      setRelatedLoading(true);
+      setRelatedProducts([]);
+
+      if (!categoryId && !brandId) {
+        setRelatedLoading(false);
+        return;
+      }
+
+      try {
+        const response = await productService.getAll({
+          per_page: 20,
+          ...(categoryId ? { category_id: categoryId } : { brand_id: brandId }),
+        });
+        const responseData = response.data?.data;
+        const products = Array.isArray(responseData)
+          ? responseData
+          : Array.isArray(responseData?.data)
+            ? responseData.data
+            : [];
+
+        if (isMounted) {
+          setRelatedProducts(
+            products.filter((item) => item.id !== product.id).slice(0, 4),
+          );
+        }
+      } catch {
+        if (isMounted) setRelatedProducts([]);
+      } finally {
+        if (isMounted) setRelatedLoading(false);
+      }
+    };
+
+    queueMicrotask(loadRelatedProducts);
+    return () => {
+      isMounted = false;
+    };
+  }, [product]);
 
   const handleAddToCart = () => {
     if (addToCart(product, quantity)) {
@@ -297,11 +379,63 @@ export default function ProductDetailPage() {
           </div>
         </section>
 
+        <section className="mt-10 rounded-2xl border border-gray-200 bg-white p-6 sm:p-8">
+          <div className="mb-6 border-b border-gray-100 pb-4">
+            <h2 className="text-xl font-bold text-gray-900">Sản phẩm liên quan</h2>
+            <p className="mt-1 text-sm text-gray-500">
+              Gợi ý thêm sản phẩm cùng danh mục để bạn dễ lựa chọn.
+            </p>
+          </div>
+
+          {relatedLoading ? (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {[1, 2, 3, 4].map((item) => (
+                <div key={item} className="h-64 animate-pulse rounded-xl bg-gray-100" />
+              ))}
+            </div>
+          ) : relatedProducts.length ? (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {relatedProducts.map((item) => {
+                const itemSalePrice = item.sale_price ?? item.promo_price;
+                const itemHasDiscount = itemSalePrice && Number(itemSalePrice) < Number(item.price);
+
+                return (
+                  <article key={item.id} className="overflow-hidden rounded-xl border border-gray-100 transition hover:-translate-y-1 hover:shadow-lg">
+                    <Link href={`/products/${item.slug || item.id}`} className="block">
+                      <div className="flex h-40 items-center justify-center bg-gray-50 p-4">
+                        {item.thumbnail ? (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img src={item.thumbnail} alt={item.name} className="max-h-full max-w-full object-contain" />
+                        ) : (
+                          <span className="text-sm text-gray-400">Chưa có ảnh</span>
+                        )}
+                      </div>
+                      <div className="p-4">
+                        <p className="line-clamp-2 min-h-10 text-sm font-semibold text-gray-800">{item.name}</p>
+                        <p className="mt-2 font-bold text-indigo-700">
+                          {formatPrice(itemHasDiscount ? itemSalePrice : item.price)} đ
+                        </p>
+                        {itemHasDiscount && (
+                          <p className="text-xs text-gray-400 line-through">{formatPrice(item.price)} đ</p>
+                        )}
+                      </div>
+                    </Link>
+                  </article>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="py-6 text-center text-sm text-gray-500">
+              Chưa có sản phẩm liên quan.
+            </p>
+          )}
+        </section>
+
         <section className="mt-10 rounded-xl border border-gray-200 bg-white p-6 sm:p-8">
           <div className="flex flex-wrap items-end justify-between gap-3 border-b border-gray-100 pb-5">
             <div>
               <h2 className="text-xl font-bold text-gray-900">
-                Đánh giá sản phẩm
+                Đánh giá từ khách hàng
               </h2>
               <p className="mt-1 text-sm text-gray-500">
                 {reviewSummary.count
@@ -311,7 +445,63 @@ export default function ProductDetailPage() {
             </div>
           </div>
 
-          <form onSubmit={handleSubmitReview} className="mt-6 max-w-2xl">
+          <div className="mt-6 rounded-2xl bg-slate-50 p-5 sm:p-6">
+            {reviewLoading ? (
+              <p className="text-sm text-gray-500">Đang tải đánh giá...</p>
+            ) : reviews.length ? (
+              <div className="space-y-4">
+                {reviews.map((review) => (
+                  <article key={review.id} className="rounded-xl border border-gray-100 bg-white p-4 sm:p-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-100 font-bold text-indigo-700">
+                          {review.user?.username?.charAt(0)?.toUpperCase() || "K"}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold text-gray-800">
+                            {review.user?.username || "Khách hàng"}
+                          </p>
+                          <p className="mt-0.5 text-xs text-gray-500">
+                            {review.created_at
+                              ? new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium" }).format(new Date(review.created_at))
+                              : ""}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="shrink-0 text-sm tracking-wide text-amber-500" aria-label={`${review.rating} sao`}>
+                        {"★".repeat(review.rating)}{"☆".repeat(5 - review.rating)}
+                      </span>
+                    </div>
+                    <p className="mt-3 whitespace-pre-line text-sm leading-6 text-gray-600">
+                      {review.comment}
+                    </p>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">
+                Chưa có đánh giá từ khách hàng khác. Hãy là người đầu tiên chia sẻ trải nghiệm.
+              </p>
+            )}
+          </div>
+
+          {reviewPage < reviewLastPage && (
+            <div className="mt-4 text-center">
+              <button
+                type="button"
+                onClick={loadMoreReviews}
+                disabled={loadingMoreReviews}
+                className="rounded-lg border border-indigo-200 px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50 disabled:opacity-60"
+              >
+                {loadingMoreReviews ? "Đang tải..." : "Xem thêm đánh giá"}
+              </button>
+            </div>
+          )}
+
+          <div className="mt-8 border-t border-gray-100 pt-6">
+            <h3 className="text-base font-bold text-gray-900">Chia sẻ đánh giá của bạn</h3>
+          </div>
+          <form onSubmit={handleSubmitReview} className="mt-4 max-w-2xl">
             <fieldset>
               <legend className="text-sm font-semibold text-gray-800">
                 Mức đánh giá
@@ -385,46 +575,6 @@ export default function ProductDetailPage() {
             </button>
           </form>
 
-          <div className="mt-8 border-t border-gray-100 pt-6">
-            {reviewLoading ? (
-              <p className="text-sm text-gray-500">Đang tải đánh giá...</p>
-            ) : reviews.length ? (
-              <div className="space-y-5">
-                {reviews.map((review) => (
-                  <article key={review.id} className="border-b border-gray-100 pb-5 last:border-0">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="font-semibold text-gray-800">
-                        {review.user?.username || "Khách hàng"}
-                      </p>
-                      <time className="text-xs text-gray-500">
-                        {review.created_at
-                          ? new Intl.DateTimeFormat("vi-VN", {
-                              dateStyle: "medium",
-                            }).format(new Date(review.created_at))
-                          : ""}
-                      </time>
-                    </div>
-                    <p
-                      className="mt-1 text-sm text-amber-500"
-                      aria-label={`${review.rating} sao`}
-                    >
-                      {"★".repeat(review.rating)}
-                      {"☆".repeat(5 - review.rating)}
-                    </p>
-                    <p className="mt-2 whitespace-pre-line text-sm leading-6 text-gray-600">
-                      {review.comment}
-                    </p>
-                  </article>
-                ))}
-              </div>
-            ) : (
-              !reviewError && (
-                <p className="text-sm text-gray-500">
-                  Chưa có đánh giá cho sản phẩm này.
-                </p>
-              )
-            )}
-          </div>
         </section>
       </div>
     </main>

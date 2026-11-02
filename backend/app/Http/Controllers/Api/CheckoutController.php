@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\Product;
+use App\Services\VnpayService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,11 +21,18 @@ class CheckoutController extends Controller
             'cus_email' => 'required|email|max:100',
             'cus_phone' => 'required|string|max:20',
             'cus_address' => 'required|string|max:1000',
-            'payment_method' => 'required|in:cod,bank_transfer',
+            'payment_method' => 'required|in:cod,vnpay',
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|integer|distinct|exists:products,id',
             'items.*.quantity' => 'required|integer|min:1',
         ]);
+
+        if ($validated['payment_method'] === 'vnpay' && !app(VnpayService::class)->isConfigured()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Chưa cấu hình kết nối VNPAY. Hãy thêm mã merchant và secret do VNPAY cấp vào backend/.env.',
+            ], 503);
+        }
 
         $quantities = collect($validated['items'])
             ->keyBy('product_id')
@@ -95,17 +103,23 @@ class CheckoutController extends Controller
             return $order;
         });
 
+        $data = [
+            'id' => $order->id,
+            'order_code' => $order->order_code,
+            'total_amount' => (float) $order->total_amount,
+            'shipping_fee' => (float) $order->shipping_fee,
+            'payment_method' => $order->payment_method,
+            'payment_status' => $order->payment_status,
+        ];
+
+        if ($order->payment_method === 'vnpay') {
+            $data['payment_url'] = app(VnpayService::class)->createPaymentUrl($order, $request);
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Đặt hàng thành công.',
-            'data' => [
-                'id' => $order->id,
-                'order_code' => $order->order_code,
-                'total_amount' => (float) $order->total_amount,
-                'shipping_fee' => (float) $order->shipping_fee,
-                'payment_method' => $order->payment_method,
-                'payment_status' => $order->payment_status,
-            ],
+            'data' => $data,
         ], 201);
     }
 }

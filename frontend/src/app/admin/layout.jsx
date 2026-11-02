@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import AdminHeader from "@/components/admin/AdminHeader";
+import api from "@/lib/axios";
 
 export default function AdminLayout({ children }) {
   const router = useRouter();
@@ -13,7 +14,7 @@ export default function AdminLayout({ children }) {
     const token = localStorage.getItem("access_token");
     const user = JSON.parse(localStorage.getItem("user_info") || "{}");
 
-    if (!token || user.role !== "admin") {
+    if (!token || !["admin", "super_admin"].includes(user.role)) {
       alert("Vui lòng đăng nhập tài khoản Admin!");
       router.push("/login");
     } else {
@@ -24,15 +25,8 @@ export default function AdminLayout({ children }) {
   }, [router]);
 
   const handleLogout = async () => {
-    const token = localStorage.getItem("access_token");
     try {
-      await fetch("http://127.0.0.1:8000/api/logout", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
+      await api.post("/logout");
     } catch (err) {
       console.error(err);
     } finally {

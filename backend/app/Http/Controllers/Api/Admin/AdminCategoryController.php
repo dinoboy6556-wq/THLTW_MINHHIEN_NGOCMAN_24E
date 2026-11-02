@@ -130,7 +130,7 @@ class AdminCategoryController extends Controller
         }
 
         // RÀNG BUỘC: Kiểm tra nếu danh mục còn sản phẩm thuộc về nó
-        if ($category->products()->count() > 0) {
+        if ($category->products()->exists()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Không thể xóa danh mục này vì đang có sản phẩm thuộc danh mục!'
@@ -138,7 +138,7 @@ class AdminCategoryController extends Controller
         }
 
         // RÀNG BUỘC: Kiểm tra nếu danh mục đang có danh mục con
-        if ($category->children()->count() > 0) {
+        if ($category->children()->exists()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Không thể xóa danh mục này vì đang chứa các danh mục con!'

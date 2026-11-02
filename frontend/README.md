@@ -2,19 +2,19 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+Start the Laravel API separately in the `backend` folder:
+
+```bash
+php artisan serve --host=127.0.0.1 --port=8000
+```
+
+Then, in a second terminal, run the Next.js frontend from this folder:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000). The frontend proxies API requests to `http://127.0.0.1:8000/api`.
 
 You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
 

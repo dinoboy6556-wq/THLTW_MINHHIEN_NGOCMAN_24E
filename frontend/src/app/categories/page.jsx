@@ -22,7 +22,7 @@ export default function CategoriesPage() {
 
     const loadCategories = async () => {
       try {
-        const response = await categoryService.getAll();
+        const response = await categoryService.getAll({ flat: true });
         if (isMounted) setCategories(extractCategories(response.data));
       } catch (err) {
         if (isMounted) setError(getErrorMessage(err));
@@ -82,6 +82,11 @@ export default function CategoriesPage() {
                   <h2 className="text-lg font-bold text-gray-800">
                     {category.name}
                   </h2>
+                  {category.parent?.name && (
+                    <p className="mt-1 text-xs font-medium text-indigo-600">
+                      Danh mục cha: {category.parent.name}
+                    </p>
+                  )}
                   {category.description && (
                     <p className="mt-2 line-clamp-2 text-sm text-gray-500">
                       {category.description}

@@ -34,8 +34,10 @@ export default function AdminUserPage() {
       if (rawUserData) {
         try {
           const parsedUser = JSON.parse(rawUserData);
-          setCurrentUser(parsedUser);
-          setCurrentUserRole(parsedUser.role || "admin");
+          queueMicrotask(() => {
+            setCurrentUser(parsedUser);
+            setCurrentUserRole(parsedUser.role || "admin");
+          });
         } catch (err) {
           console.error("Lỗi đọc dữ liệu người dùng từ LocalStorage:", err);
         }
@@ -124,6 +126,19 @@ export default function AdminUserPage() {
     }
   };
 
+  const handleSoftDelete = async (user) => {
+    if (!canDelete(user)) return;
+    if (!confirm(`Chuyển tài khoản "${user.username}" vào thùng rác?`)) return;
+
+    try {
+      const response = await userService.remove(user.id);
+      alert(response.data.message || 'Đã chuyển tài khoản vào thùng rác.');
+      loadUsers();
+    } catch (error) {
+      alert(getErrorMessage(error));
+    }
+  };
+
   // Kiểm tra quyền khóa trên Giao diện
   const canBlock = (targetUser) => {
     if (targetUser.role === "super_admin") return false; // Không thể khóa Super Admin
@@ -131,6 +146,12 @@ export default function AdminUserPage() {
     if (currentUserRole === "admin" && targetUser.role === "member")
       return true; // Admin chỉ khóa được Member
     return false;
+  };
+
+  const canDelete = (targetUser) => {
+    if (targetUser.role === 'super_admin' || targetUser.id === currentUser?.id) return false;
+    if (currentUserRole === 'super_admin') return true;
+    return currentUserRole === 'admin' && targetUser.role === 'member';
   };
 
   // BỘ LỌC VÀ PHÂN TRANG
@@ -282,6 +303,7 @@ export default function AdminUserPage() {
                 const isSuperAdmin = u.role === "super_admin";
                 const isAdmin = u.role === "admin";
                 const allowBlock = canBlock(u);
+                const allowDelete = canDelete(u);
 
                 return (
                   <tr key={u.id} className="hover:bg-gray-50/50 transition">
@@ -349,6 +371,16 @@ export default function AdminUserPage() {
                           }
                         >
                           {isActive ? "Khóa" : "Mở khóa"}
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={!allowDelete}
+                          onClick={() => handleSoftDelete(u)}
+                          title={!allowDelete ? 'Bạn không có quyền xóa tài khoản này' : ''}
+                          className="rounded-md bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Thùng rác
                         </button>
                       </div>
                     </td>

@@ -4,49 +4,14 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import api, { getErrorMessage } from "@/lib/axios";
 
-const formatMoney = (amount) => `${Number(amount || 0).toLocaleString("vi-VN")} đ`;
-// Hướng dẫn chuyển khoản MoMo
-function BankTransferInstructions({ amount, orderCode }) {
+function VnpayInstructions() {
   return (
     <div className="mt-4 rounded-xl border border-indigo-100 bg-indigo-50/60 p-4 sm:p-5">
-      <div className="grid gap-5 sm:grid-cols-[180px_1fr] sm:items-center">
-        <div className="mx-auto w-full max-w-44 rounded-lg border border-gray-200 bg-white p-2">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/images/payment/momo-receive-qr.png"
-            alt="Mã QR nhận tiền MoMo"
-            className="h-auto w-full"
-          />
-        </div>
-        <div className="text-sm text-gray-700">
-          <h3 className="font-bold text-gray-900">Thông tin chuyển khoản MoMo</h3>
-          <dl className="mt-3 grid gap-2">
-            <div className="flex flex-wrap justify-between gap-x-4">
-              <dt className="text-gray-500">Người nhận</dt>
-              <dd className="font-semibold">NGUYEN NGOC MAN</dd>
-            </div>
-            <div className="flex flex-wrap justify-between gap-x-4">
-              <dt className="text-gray-500">Số tài khoản</dt>
-              <dd className="font-semibold">PSP2618416100000097</dd>
-            </div>
-            <div className="flex flex-wrap justify-between gap-x-4">
-              <dt className="text-gray-500">Số tiền</dt>
-              <dd className="font-bold text-indigo-700">{formatMoney(amount)}</dd>
-            </div>
-            {orderCode && (
-              <div className="flex flex-wrap justify-between gap-x-4">
-                <dt className="text-gray-500">Nội dung chuyển khoản</dt>
-                <dd className="font-bold text-gray-900">{orderCode}</dd>
-              </div>
-            )}
-          </dl>
-          <p className="mt-3 text-xs leading-5 text-gray-600">
-            Quét mã bằng ứng dụng MoMo, kiểm tra đúng người nhận và số tiền trước khi chuyển.
-            {orderCode
-              ? " Đơn hàng sẽ được xác nhận sau khi cửa hàng kiểm tra giao dịch."
-              : " Sau khi đặt hàng, dùng mã đơn hàng làm nội dung chuyển khoản. Đơn hàng chưa được ghi nhận là đã thanh toán."}
-          </p>
-        </div>
+      <div className="text-sm text-gray-700">
+        <h3 className="font-bold text-gray-900">Thanh toán qua cổng VNPAY</h3>
+        <p className="mt-2 text-xs leading-5 text-gray-600">
+          Sau khi xác nhận đặt hàng, bạn sẽ được chuyển tới VNPAY để chọn chuyển khoản ngân hàng hoặc quét mã VNPAY-QR. Đơn hàng chỉ được ghi nhận đã thanh toán sau khi VNPAY xác nhận giao dịch.
+        </p>
       </div>
     </div>
   );
@@ -69,6 +34,7 @@ export default function CartPage() {
   const [placingOrder, setPlacingOrder] = useState(false);
   const [checkoutError, setCheckoutError] = useState("");
   const [orderComplete, setOrderComplete] = useState(null);
+  const [paymentNotice, setPaymentNotice] = useState(null);
 
   // 1. TẢI GIỎ HÀNG TỪ LOCALSTORAGE (Dùng queueMicrotask tránh lỗi setState đồng bộ)
   useEffect(() => {
@@ -94,6 +60,32 @@ export default function CartPage() {
         setLoading(false);
       }
     });
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const payment = params.get("payment");
+    if (!payment) return;
+
+    const orderCode = params.get("order_code");
+    queueMicrotask(() => {
+      if (payment === "success") {
+        localStorage.removeItem("cart");
+        setCartItems([]);
+        window.dispatchEvent(new Event("cartUpdated"));
+        setPaymentNotice({
+          success: true,
+          text: `VNPAY báo thanh toán thành công${orderCode ? ` cho đơn ${orderCode}` : ""}. Đơn hàng đang được hệ thống cập nhật.`,
+        });
+      } else {
+        setPaymentNotice({
+          success: false,
+          text: "Thanh toán VNPAY chưa hoàn tất. Giỏ hàng của bạn vẫn được giữ lại để thử lại.",
+        });
+      }
+    });
+
+    window.history.replaceState({}, "", window.location.pathname);
   }, []);
 
   // 2. LƯU THAY ĐỔI VÀO LOCALSTORAGE
@@ -157,6 +149,14 @@ export default function CartPage() {
         throw new Error("Không nhận được thông tin đơn hàng.");
       }
 
+      if (paymentMethod === "vnpay") {
+        if (!order.payment_url) {
+          throw new Error("Không nhận được liên kết thanh toán VNPAY.");
+        }
+        window.location.assign(order.payment_url);
+        return;
+      }
+
       setOrderComplete(order);
       saveCartToStorage([]);
       setShowCheckout(false);
@@ -195,6 +195,11 @@ export default function CartPage() {
   return (
     <div className="bg-gray-50 min-h-screen py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto flex flex-col gap-8">
+        {paymentNotice && (
+          <p role="status" className={`rounded-xl border px-4 py-3 text-sm ${paymentNotice.success ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-amber-200 bg-amber-50 text-amber-900"}`}>
+            {paymentNotice.text} {paymentNotice.success && <Link href="/orders" className="font-semibold underline">Xem đơn hàng</Link>}
+          </p>
+        )}
         <div className="flex justify-between items-center border-b pb-4">
           <div>
             <h1 className="text-3xl font-extrabold text-gray-900">
@@ -228,11 +233,8 @@ export default function CartPage() {
             <p className="mt-1 text-sm text-gray-600">
               Tổng thanh toán: <strong>{Number(orderComplete.total_amount).toLocaleString("vi-VN")} đ</strong>
             </p>
-            {orderComplete.payment_method === "bank_transfer" ? (
-              <BankTransferInstructions
-                amount={orderComplete.total_amount}
-                orderCode={orderComplete.order_code}
-              />
+            {orderComplete.payment_method === "vnpay" ? (
+              <p className="mt-3 text-sm text-gray-500">Thanh toán VNPAY đang chờ xác nhận.</p>
             ) : (
               <p className="mt-3 text-sm text-gray-500">
                 Đơn hàng đang chờ xác nhận. Bạn thanh toán khi nhận hàng.
@@ -608,23 +610,23 @@ export default function CartPage() {
                       <span className="mt-1 block text-xs text-gray-500">Trả tiền trực tiếp cho đơn vị giao hàng.</span>
                     </span>
                   </label>
-                  <label className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 ${paymentMethod === "bank_transfer" ? "border-indigo-500 bg-indigo-50" : "border-gray-200"}`}>
+                  <label className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 ${paymentMethod === "vnpay" ? "border-indigo-500 bg-indigo-50" : "border-gray-200"}`}>
                     <input
                       type="radio"
                       name="payment_method"
-                      value="bank_transfer"
-                      checked={paymentMethod === "bank_transfer"}
-                      onChange={() => setPaymentMethod("bank_transfer")}
+                      value="vnpay"
+                      checked={paymentMethod === "vnpay"}
+                      onChange={() => setPaymentMethod("vnpay")}
                       className="mt-1 accent-indigo-600"
                     />
                     <span>
-                      <span className="block text-sm font-semibold text-gray-800">Chuyển khoản</span>
-                      <span className="mt-1 block text-xs text-gray-500">Quét mã MoMo để chuyển khoản.</span>
+                      <span className="block text-sm font-semibold text-gray-800">Chuyển khoản / QR qua VNPAY</span>
+                      <span className="mt-1 block text-xs text-gray-500">Thanh toán trên cổng VNPAY bằng ngân hàng hoặc mã QR.</span>
                     </span>
                   </label>
                 </div>
-                {paymentMethod === "bank_transfer" && (
-                  <BankTransferInstructions amount={total} />
+                {paymentMethod === "vnpay" && (
+                  <VnpayInstructions />
                 )}
               </fieldset>
 

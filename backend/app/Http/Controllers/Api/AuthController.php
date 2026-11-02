@@ -7,10 +7,15 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+<<<<<<< HEAD
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
+=======
+use Illuminate\Support\Facades\Storage;
+>>>>>>> origin/LeTranMinhHien
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class AuthController extends Controller
 {
@@ -45,6 +50,7 @@ class AuthController extends Controller
                 'email' => $user->email,
                 'phone' => $user->phone,
                 'address' => $user->address,
+                'avatar_url' => $this->avatarUrl($user),
                 'role' => $user->role,
             ],
         ], 201);
@@ -117,6 +123,9 @@ class AuthController extends Controller
                 'id' => $user->id,
                 'username' => $user->username,
                 'email' => $user->email,
+                'phone' => $user->phone,
+                'address' => $user->address,
+                'avatar_url' => $this->avatarUrl($user),
                 'role' => $user->role,
             ]
         ], 200);
@@ -243,7 +252,57 @@ class AuthController extends Controller
     {
         return response()->json([
             'success' => true,
-            'user' => $request->user()
+            'user' => $this->profileData($request->user())
         ], 200);
+    }
+
+    public function updateProfile(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $validated = $request->validate([
+            'username' => ['required', 'string', 'max:50', Rule::unique('user', 'username')->ignore($user->id)],
+            'email' => ['required', 'email', 'max:100', Rule::unique('user', 'email')->ignore($user->id)],
+            'phone' => ['nullable', 'string', 'max:20'],
+            'address' => ['nullable', 'string', 'max:1000'],
+            'avatar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+        ]);
+
+        $oldAvatar = $user->avatar;
+        $avatarFile = $request->file('avatar');
+        unset($validated['avatar']);
+
+        $user->fill($validated);
+        if ($avatarFile) {
+            $user->avatar = $avatarFile->store('avatars', 'public');
+        }
+        $user->save();
+
+        if ($avatarFile && $oldAvatar && Storage::disk('public')->exists($oldAvatar)) {
+            Storage::disk('public')->delete($oldAvatar);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Cập nhật hồ sơ thành công.',
+            'user' => $this->profileData($user->fresh()),
+        ]);
+    }
+
+    private function profileData(User $user): array
+    {
+        return [
+            'id' => $user->id,
+            'username' => $user->username,
+            'email' => $user->email,
+            'phone' => $user->phone,
+            'address' => $user->address,
+            'avatar_url' => $this->avatarUrl($user),
+            'role' => $user->role,
+        ];
+    }
+
+    private function avatarUrl(User $user): ?string
+    {
+        return $user->avatar ? Storage::disk('public')->url($user->avatar) : null;
     }
 }

@@ -2,11 +2,11 @@ import api from '@/lib/axios';
 
 const categoryService = {
   // Dành cho Trang chủ & Cửa hàng (Public)
-  getAll: () => api.get('/categories'),
+  getAll: (params) => api.get('/categories', { params }),
   getById: (id) => api.get(`/categories/${id}`),
 
   // Dành riêng cho trang Admin Dashboard
-  getAdminAll: () => api.get('/admin/categories'),
+  getAdminAll: (params) => api.get('/admin/categories', { params }),
   getAdminById: (id) => api.get(`/admin/categories/${id}`),
   create: (data) => api.post('/admin/categories', data),
   update: (id, data) => api.put(`/admin/categories/${id}`, data),

@@ -6,7 +6,7 @@ const brandService = {
   getById: (id) => api.get(`/brands/${id}`),
 
   // Dành riêng cho trang Admin Dashboard
-  getAdminAll: () => api.get('/admin/brands'),
+  getAdminAll: (params) => api.get('/admin/brands', { params }),
   getAdminById: (id) => api.get(`/admin/brands/${id}`),
   create: (data) => api.post('/admin/brands', data),
   update: (id, data) => api.put(`/admin/brands/${id}`, data),
