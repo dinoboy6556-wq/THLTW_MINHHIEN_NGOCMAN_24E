@@ -3,8 +3,9 @@
     "private": true,
     "type": "module",
     "scripts": {
+        "dev": "vite",
         "build": "vite build",
-        "dev": "vite"
+        "dev:all": "concurrently \"php artisan serve\" \"npm run dev\""
     },
     "devDependencies": {
         "@tailwindcss/vite": "^4.0.0",
