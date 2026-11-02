@@ -17,11 +17,37 @@ export default function AdminLayout({ children }) {
     if (!token || !["admin", "super_admin"].includes(user.role)) {
       alert("Vui lòng đăng nhập tài khoản Admin!");
       router.push("/login");
-    } else {
-      queueMicrotask(() => {
-        setAdminUser(user);
-      });
+      return;
     }
+
+    let active = true;
+
+    api.get("/me")
+      .then((response) => {
+        const currentUser = response.data?.user;
+        if (!active) return;
+
+        if (!currentUser || !["admin", "super_admin"].includes(currentUser.role)) {
+          localStorage.removeItem("access_token");
+          localStorage.removeItem("user_info");
+          alert("Phiên đăng nhập không phải tài khoản Admin!");
+          router.replace("/login");
+          return;
+        }
+
+        localStorage.setItem("user_info", JSON.stringify(currentUser));
+        setAdminUser(currentUser);
+      })
+      .catch(() => {
+        if (!active) return;
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("user_info");
+        router.replace("/login");
+      });
+
+    return () => {
+      active = false;
+    };
   }, [router]);
 
   const handleLogout = async () => {
