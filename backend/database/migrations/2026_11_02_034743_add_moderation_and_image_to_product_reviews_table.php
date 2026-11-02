@@ -11,9 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (!Schema::hasTable('product_reviews')) {
+            return;
+        }
+
         Schema::table('product_reviews', function (Blueprint $table) {
-            $table->string('image_path')->nullable()->after('comment');
-            $table->enum('status', ['pending', 'approved', 'rejected'])->default('approved')->after('image_path')->index();
+            if (!Schema::hasColumn('product_reviews', 'image_path')) {
+                $table->string('image_path')->nullable()->after('comment');
+            }
+            if (!Schema::hasColumn('product_reviews', 'status')) {
+                $table->enum('status', ['pending', 'approved', 'rejected'])->default('approved')->index();
+            }
         });
     }
 
