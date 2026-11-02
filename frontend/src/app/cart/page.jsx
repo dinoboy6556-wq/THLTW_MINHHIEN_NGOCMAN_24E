@@ -7,13 +7,13 @@ import couponService from "@/services/couponService";
 
 function QrPaymentInstructions({ totalAmount }) {
   const paymentNote = "Thanh toan don hang";
-  const momoUrl = "https://nhantien.momo.vn/0336421837";
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=12&data=${encodeURIComponent(momoUrl)}`;
+  const momoQrUrl = process.env.NEXT_PUBLIC_MOMO_QR_IMAGE || "/momo-qr.png";
+  const momoReceiveUrl = "https://nhantien.momo.vn/0336421837";
 
   return (
     <div className="mt-4 grid gap-4 rounded-xl border border-pink-100 bg-pink-50/60 p-4 sm:grid-cols-[180px_1fr] sm:p-5">
       <div className="mx-auto w-full max-w-[180px] rounded-xl bg-white p-2 shadow-sm">
-        <img src={qrUrl} alt="QR thanh toán MoMo" className="h-auto w-full" />
+        <img src={momoQrUrl} alt="QR thanh toán MoMo chính thức" className="h-auto w-full" />
       </div>
       <div className="text-sm text-gray-700">
         <h3 className="font-bold text-gray-900">Thanh toán bằng QR MoMo</h3>
@@ -26,6 +26,14 @@ function QrPaymentInstructions({ totalAmount }) {
         <p className="mt-3 rounded-lg bg-white px-3 py-2 text-xs text-gray-600">
           Nội dung chuyển khoản: <strong>{paymentNote}</strong>. Đơn hàng được ghi nhận sau khi cửa hàng xác nhận thanh toán.
         </p>
+        <a
+          href={momoReceiveUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-3 inline-flex rounded-lg bg-pink-600 px-3 py-2 text-xs font-semibold text-white hover:bg-pink-700"
+        >
+          Mở trang nhận tiền MoMo
+        </a>
       </div>
     </div>
   );
