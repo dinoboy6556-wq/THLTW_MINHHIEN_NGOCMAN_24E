@@ -11,7 +11,7 @@ return new class extends Migration
         $productIdType = $this->idColumnType('products');
         $userIdType = $this->idColumnType('user');
 
-        Schema::create('product_reviews', function (Blueprint $table) {
+        Schema::create('product_reviews', function (Blueprint $table) use ($productIdType, $userIdType) {
             $table->id();
             $this->addMatchingIdColumn($table, 'product_id', $productIdType);
             $this->addMatchingIdColumn($table, 'user_id', $userIdType);

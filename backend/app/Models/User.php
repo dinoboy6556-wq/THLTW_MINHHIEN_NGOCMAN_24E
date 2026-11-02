@@ -39,6 +39,16 @@ class User extends Authenticatable
         return $this->hasMany(Order::class, 'user_id');
     }
 
+    public function favoriteProducts(): HasMany
+    {
+        return $this->hasMany(ProductFavorite::class, 'user_id');
+    }
+
+    public function productReactions(): HasMany
+    {
+        return $this->hasMany(ProductReaction::class, 'user_id');
+    }
+
     // 2. Khai báo cho Laravel Auth biết cột mật khẩu tên là 'pass'
     public function getAuthPassword()
     {

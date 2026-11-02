@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import api, { getErrorMessage } from "@/lib/axios";
+import couponService from "@/services/couponService";
 
 function VnpayInstructions() {
   return (
@@ -21,6 +22,9 @@ export default function CartPage() {
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [promoCode, setPromoCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponMessage, setCouponMessage] = useState("");
+  const [couponLoading, setCouponLoading] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isCustomer, setIsCustomer] = useState(false);
@@ -91,6 +95,8 @@ export default function CartPage() {
   // 2. LƯU THAY ĐỔI VÀO LOCALSTORAGE
   const saveCartToStorage = (updatedCart) => {
     setCartItems(updatedCart);
+    setAppliedCoupon(null);
+    setCouponMessage("Giỏ hàng đã thay đổi. Hãy áp dụng lại mã ưu đãi.");
     localStorage.setItem("cart", JSON.stringify(updatedCart));
     // Phát sự kiện để Header/Navbar tự cập nhật số lượng badge
     window.dispatchEvent(new Event("cartUpdated"));
@@ -138,6 +144,7 @@ export default function CartPage() {
       const response = await api.post("/orders", {
         ...checkoutInfo,
         payment_method: paymentMethod,
+        ...(appliedCoupon ? { coupon_code: appliedCoupon.code } : {}),
         items: cartItems.map((item) => ({
           product_id: item.id,
           quantity: Number(item.quantity),
@@ -172,6 +179,26 @@ export default function CartPage() {
     }
   };
 
+  const handleApplyCoupon = async () => {
+    if (!promoCode.trim()) {
+      setCouponMessage("Vui lòng nhập mã giảm giá.");
+      return;
+    }
+
+    setCouponLoading(true);
+    setCouponMessage("");
+    try {
+      const response = await couponService.validate(promoCode.trim(), subtotal);
+      setAppliedCoupon(response.data?.data || null);
+      setCouponMessage("Đã áp dụng mã giảm giá.");
+    } catch (error) {
+      setAppliedCoupon(null);
+      setCouponMessage(getErrorMessage(error));
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
   // 3. TÍNH TOÁN CHI PHÍ
   const subtotal = cartItems.reduce((sum, item) => {
     const itemPrice = item.promo_price
@@ -182,7 +209,8 @@ export default function CartPage() {
 
   // Miễn phí vận chuyển cho đơn hàng từ 1.000.000đ
   const shippingFee = subtotal >= 1000000 || subtotal === 0 ? 0 : 30000;
-  const total = subtotal + shippingFee;
+  const discountAmount = Number(appliedCoupon?.discount_amount || 0);
+  const total = Math.max(0, subtotal - discountAmount) + shippingFee;
 
   if (loading) {
     return (
@@ -411,20 +439,30 @@ export default function CartPage() {
                     <input
                       type="text"
                       value={promoCode}
-                      onChange={(e) => setPromoCode(e.target.value)}
+                      onChange={(e) => {
+                        setPromoCode(e.target.value);
+                        if (appliedCoupon) {
+                          setAppliedCoupon(null);
+                          setCouponMessage("Mã đã thay đổi. Hãy áp dụng lại.");
+                        }
+                      }}
                       placeholder="Nhập mã giảm giá"
                       className="flex-1 px-3 py-2 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 uppercase"
                     />
                     <button
                       type="button"
-                      onClick={() =>
-                        alert("Mã giảm giá không hợp lệ hoặc đã hết hạn!")
-                      }
+                      onClick={handleApplyCoupon}
+                      disabled={couponLoading}
                       className="bg-gray-800 hover:bg-gray-900 text-white font-medium px-4 py-2 rounded-xl text-xs transition"
                     >
-                      Áp dụng
+                      {couponLoading ? "Đang kiểm tra..." : "Áp dụng"}
                     </button>
                   </div>
+                  {couponMessage && (
+                    <p className={`mt-2 text-xs ${appliedCoupon ? "text-emerald-700" : "text-amber-700"}`} role="status">
+                      {couponMessage}
+                    </p>
+                  )}
                 </div>
 
                 {/* Bảng chi tiết chi phí */}
@@ -437,6 +475,11 @@ export default function CartPage() {
                     <span className="font-semibold text-gray-800">
                       {subtotal.toLocaleString("vi-VN")} đ
                     </span>
+                  </div>
+
+                  <div className="flex justify-between text-gray-600">
+                    <span>Mã giảm giá {appliedCoupon?.code ? `(${appliedCoupon.code})` : ""}</span>
+                    <span className="font-semibold text-emerald-700">−{discountAmount.toLocaleString("vi-VN")} đ</span>
                   </div>
 
                   <div className="flex justify-between text-gray-600">

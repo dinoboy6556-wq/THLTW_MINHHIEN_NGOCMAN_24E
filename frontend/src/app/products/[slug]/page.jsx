@@ -30,6 +30,20 @@ export default function ProductDetailPage() {
   const [reviewError, setReviewError] = useState("");
   const [reviewMessage, setReviewMessage] = useState("");
   const [requiresLogin, setRequiresLogin] = useState(false);
+  const [reviewImage, setReviewImage] = useState(null);
+  const [reactionState, setReactionState] = useState({ likes: 0, dislikes: 0, my_reaction: null, is_favorite: false });
+  const [reactionLoading, setReactionLoading] = useState(false);
+
+  useEffect(() => {
+    if (!product?.id) return;
+    let isMounted = true;
+    productService.getReactions(product.id)
+      .then((response) => {
+        if (isMounted) setReactionState(response.data?.data || { likes: 0, dislikes: 0, my_reaction: null, is_favorite: false });
+      })
+      .catch(() => {});
+    return () => { isMounted = false; };
+  }, [product?.id]);
 
   useEffect(() => {
     let isMounted = true;
@@ -185,15 +199,17 @@ export default function ProductDetailPage() {
     setRequiresLogin(false);
     setReviewSubmitting(true);
     try {
-      await productService.submitReview(product.id, {
-        rating: reviewRating,
-        comment: reviewComment.trim(),
-      });
+      const formData = new FormData();
+      formData.set("rating", String(reviewRating));
+      formData.set("comment", reviewComment.trim());
+      if (reviewImage) formData.set("image", reviewImage);
+      await productService.submitReview(product.id, formData);
       const response = await productService.getReviews(product.id);
       setReviews(response.data?.data?.data || []);
       setReviewSummary(response.data?.summary || { average: 0, count: 0 });
       setReviewComment("");
-      setReviewMessage("Đánh giá của bạn đã được lưu.");
+      setReviewImage(null);
+      setReviewMessage("Đánh giá đã được gửi và đang chờ quản trị viên duyệt.");
     } catch (requestError) {
       console.error(
         "Lỗi gửi đánh giá sản phẩm:",
@@ -202,6 +218,46 @@ export default function ProductDetailPage() {
       setReviewError(getErrorMessage(requestError));
     } finally {
       setReviewSubmitting(false);
+    }
+  };
+
+  const updateProductReaction = async (reaction) => {
+    if (!localStorage.getItem("access_token")) {
+      setReviewError("Vui lòng đăng nhập để thích, không thích hoặc lưu yêu thích.");
+      setRequiresLogin(true);
+      return;
+    }
+
+    setReactionLoading(true);
+    try {
+      const currentReaction = reactionState.my_reaction === reaction ? null : reaction;
+      const response = await productService.updateReaction(product.id, currentReaction);
+      setReactionState(response.data?.data || reactionState);
+    } catch (requestError) {
+      setReviewError(getErrorMessage(requestError));
+    } finally {
+      setReactionLoading(false);
+    }
+  };
+
+  const toggleFavorite = async () => {
+    if (!localStorage.getItem("access_token")) {
+      setReviewError("Vui lòng đăng nhập để lưu sản phẩm yêu thích.");
+      setRequiresLogin(true);
+      return;
+    }
+
+    setReactionLoading(true);
+    try {
+      const response = reactionState.is_favorite
+        ? await productService.removeFavorite(product.id)
+        : await productService.addFavorite(product.id);
+      const reactions = await productService.getReactions(product.id);
+      setReactionState(reactions.data?.data || { ...reactionState, is_favorite: response.data?.is_favorite });
+    } catch (requestError) {
+      setReviewError(getErrorMessage(requestError));
+    } finally {
+      setReactionLoading(false);
     }
   };
 
@@ -290,6 +346,11 @@ export default function ProductDetailPage() {
               <span className="text-gray-500">
                 ({reviewSummary.count} đánh giá)
               </span>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button type="button" disabled={reactionLoading} onClick={() => updateProductReaction("like")} className={`rounded-lg border px-3 py-2 text-sm ${reactionState.my_reaction === "like" ? "border-indigo-500 bg-indigo-50 text-indigo-700" : "border-gray-200 text-gray-700"}`}>👍 Thích ({reactionState.likes})</button>
+              <button type="button" disabled={reactionLoading} onClick={() => updateProductReaction("dislike")} className={`rounded-lg border px-3 py-2 text-sm ${reactionState.my_reaction === "dislike" ? "border-indigo-500 bg-indigo-50 text-indigo-700" : "border-gray-200 text-gray-700"}`}>👎 Không thích ({reactionState.dislikes})</button>
+              <button type="button" disabled={reactionLoading} onClick={toggleFavorite} className={`rounded-lg border px-3 py-2 text-sm ${reactionState.is_favorite ? "border-pink-300 bg-pink-50 text-pink-700" : "border-gray-200 text-gray-700"}`}>{reactionState.is_favorite ? "♥ Đã yêu thích" : "♡ Yêu thích"}</button>
             </div>
 
             <div className="mt-6 border-y border-gray-100 py-5">
@@ -475,6 +536,10 @@ export default function ProductDetailPage() {
                     <p className="mt-3 whitespace-pre-line text-sm leading-6 text-gray-600">
                       {review.comment}
                     </p>
+                    {review.image_url && (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={review.image_url} alt="Ảnh khách hàng gửi trong đánh giá" className="mt-3 max-h-64 rounded-lg border border-gray-100 object-contain" />
+                    )}
                   </article>
                 ))}
               </div>
@@ -537,6 +602,11 @@ export default function ProductDetailPage() {
                 placeholder="Chia sẻ trải nghiệm của bạn về sản phẩm..."
                 className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-normal text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
+            </label>
+            <label className="mt-4 block text-sm font-semibold text-gray-800">
+              Ảnh minh họa (không bắt buộc)
+              <input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => setReviewImage(event.target.files?.[0] || null)} className="mt-2 block w-full text-sm text-gray-600" />
+              <span className="mt-1 block text-xs font-normal text-gray-400">JPG, PNG hoặc WebP, tối đa 5 MB.</span>
             </label>
             {reviewError && (
               <p className="mt-3 text-sm text-red-600" role="alert">
