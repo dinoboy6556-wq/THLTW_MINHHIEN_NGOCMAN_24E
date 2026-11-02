@@ -7,13 +7,9 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-<<<<<<< HEAD
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
-=======
-use Illuminate\Support\Facades\Storage;
->>>>>>> origin/LeTranMinhHien
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
