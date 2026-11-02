@@ -11,10 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('product_reactions', function (Blueprint $table) {
+        if (Schema::hasTable('product_reactions')) return;
+        $productIdType = $this->idColumnType('products');
+        $userIdType = $this->idColumnType('user');
+        Schema::create('product_reactions', function (Blueprint $table) use ($productIdType, $userIdType) {
             $table->id();
-            $table->unsignedBigInteger('user_id');
-            $table->unsignedBigInteger('product_id');
+            $this->addMatchingIdColumn($table, 'user_id', $userIdType);
+            $this->addMatchingIdColumn($table, 'product_id', $productIdType);
             $table->enum('reaction', ['like', 'dislike']);
             $table->timestamps();
 
@@ -30,5 +33,25 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('product_reactions');
+    }
+
+    private function idColumnType(string $tableName): string
+    {
+        if (\Illuminate\Support\Facades\DB::connection()->getDriverName() !== 'mysql') return 'bigint unsigned';
+        $column = \Illuminate\Support\Facades\DB::selectOne(
+            'SELECT COLUMN_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?',
+            [$tableName, 'id'],
+        );
+        return strtolower($column->COLUMN_TYPE ?? 'bigint unsigned');
+    }
+
+    private function addMatchingIdColumn(Blueprint $table, string $column, string $type): void
+    {
+        $big = str_contains($type, 'bigint');
+        $unsigned = str_contains($type, 'unsigned');
+        if ($big && $unsigned) $table->unsignedBigInteger($column);
+        elseif ($big) $table->bigInteger($column);
+        elseif ($unsigned) $table->unsignedInteger($column);
+        else $table->integer($column);
     }
 };

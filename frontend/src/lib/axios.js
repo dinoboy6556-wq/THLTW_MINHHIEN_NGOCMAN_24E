@@ -140,6 +140,11 @@ export function getErrorMessage(error) {
     }
 
     if (typeof data?.message === "string" && /SQLSTATE/i.test(data.message)) {
+      if (/Base table or view not found|Table ['`"].*['`"] doesn't exist/i.test(data.message)) {
+        const table = data.message.match(/Table ['`"]([^'`"]+)['`"] doesn't exist/i)?.[1];
+        if (table === "stock_movements") return "Database chưa có bảng lịch sử kho. Hãy chạy php artisan migrate trong thư mục backend rồi tải lại trang.";
+        return `Database chưa có bảng${table ? ` ${table}` : " cần thiết"}. Hãy chạy php artisan migrate trong thư mục backend.`;
+      }
       if (/Duplicate entry[\s\S]*for key ['`"]products\.slug['`"]?/i.test(data.message)) {
         return "Slug sản phẩm đã bị trùng. Hãy thử lưu lại để hệ thống tạo đường dẫn riêng.";
       }

@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\Admin\AdminTrashController;
 use App\Http\Controllers\Api\Admin\AdminCouponController;
 use App\Http\Controllers\Api\Admin\AdminOrderRequestController;
 use App\Http\Controllers\Api\Admin\AdminReviewController;
+use App\Http\Controllers\Api\Admin\ExtraManagementController;
 use App\Http\Controllers\Api\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Api\Admin\UserController;
 use App\Http\Controllers\Api\AuthController;
@@ -43,6 +44,10 @@ Route::get('/posts', [PostController::class, 'index']);
 Route::get('/posts/{slug}', [PostController::class, 'show']);
 Route::get('/menus', [MenuController::class, 'index']);
 Route::post('/chat', ChatController::class)->middleware('throttle:20,1');
+Route::post('/contacts', [ExtraManagementController::class, 'submitContact']);
+Route::get('/pages/{slug}', [ExtraManagementController::class, 'publicPage']);
+Route::get('/banners', fn () => response()->json(['success'=>true,'data'=>\Illuminate\Support\Facades\DB::table('banners')->where('is_active',true)->orderBy('sort_order')->get()]));
+Route::get('/settings', fn () => response()->json(['success'=>true,'data'=>\Illuminate\Support\Facades\DB::table('website_settings')->pluck('value','key')]));
 Route::get('/payments/vnpay/return', [VnpayController::class, 'returnFromGateway']);
 Route::get('/payments/vnpay/ipn', [VnpayController::class, 'ipn']);
 Route::post('/login', [AuthController::class, 'login'])->name('login');
@@ -75,6 +80,16 @@ Route::middleware(['auth:sanctum', CheckAdmin::class])->prefix('admin')->group(f
     Route::put('/reviews/{review}', [AdminReviewController::class, 'update']);
     Route::get('/order-requests', [AdminOrderRequestController::class, 'index']);
     Route::put('/order-requests/{id}', [AdminOrderRequestController::class, 'update']);
+    Route::get('/inventory/movements', [ExtraManagementController::class, 'stockMovements']);
+    Route::post('/inventory/movements', [ExtraManagementController::class, 'moveStock']);
+    Route::get('/contacts', [ExtraManagementController::class, 'index'])->defaults('resource', 'contacts');
+    Route::put('/contacts/{id}', [ExtraManagementController::class, 'replyContact']);
+    foreach (['pages','banners','post-categories','settings'] as $resource) {
+        Route::get("/{$resource}", [ExtraManagementController::class, 'index'])->defaults('resource', $resource);
+        Route::post("/{$resource}", [ExtraManagementController::class, 'store'])->defaults('resource', $resource);
+        Route::put("/{$resource}/{id}", [ExtraManagementController::class, 'update'])->defaults('resource', $resource);
+        Route::delete("/{$resource}/{id}", [ExtraManagementController::class, 'destroy'])->defaults('resource', $resource);
+    }
     Route::get('/trash', [AdminTrashController::class, 'index']);
     Route::post('/trash/{resource}/{id}/restore', [AdminTrashController::class, 'restore']);
     Route::delete('/trash/{resource}/{id}', [AdminTrashController::class, 'destroy']);

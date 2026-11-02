@@ -10,6 +10,7 @@ import ArticleCard from "@/components/ArticleCard";
 import BrandLogo from "@/components/BrandLogo";
 import { mapPostToArticle } from "@/data/articles";
 import postService from "@/services/postService";
+import api from "@/lib/axios";
 
 // Hàm tự động gán Icon Emoji sinh động theo tên Danh Mục
 const getCategoryIcon = (catName = "") => {
@@ -34,6 +35,7 @@ export default function HomePage() {
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
   const [articles, setArticles] = useState([]);
+  const [banners, setBanners] = useState([]);
   const [dataErrors, setDataErrors] = useState([]);
   const [loadingSections, setLoadingSections] = useState({
     products: true,
@@ -80,6 +82,12 @@ export default function HomePage() {
 
     const fetchHomeData = () => {
       const requests = [
+        {
+          label: "Banner",
+          request: () => api.get("/banners"),
+          setData: setBanners,
+          map: extractArray,
+        },
         {
           label: "Sản phẩm",
           key: "products",
@@ -301,6 +309,17 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col gap-12 pb-16">
+      {banners.length > 0 && (
+        <section aria-label="Banner cửa hàng" className="mx-auto mt-6 w-full max-w-7xl px-4 sm:px-6">
+          {banners.slice(0, 1).map((banner) => (
+            <Link key={banner.id} href={banner.target_url || "/products"} className="group relative block overflow-hidden rounded-3xl bg-slate-900 shadow-xl">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={banner.image_url} alt={banner.title} className="h-52 w-full object-cover transition duration-500 group-hover:scale-[1.02] sm:h-72 lg:h-[350px]" />
+              <span className="absolute bottom-4 left-5 rounded-full bg-black/50 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm">{banner.title}</span>
+            </Link>
+          ))}
+        </section>
+      )}
       {/* 1. HERO BANNER & THANH TÌM KIẾM TẬP TRUNG */}
       <section className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white py-16 px-6 sm:px-12 rounded-b-3xl shadow-xl relative overflow-hidden">
         <div className="max-w-7xl mx-auto flex flex-col items-center text-center gap-8 relative z-10">
