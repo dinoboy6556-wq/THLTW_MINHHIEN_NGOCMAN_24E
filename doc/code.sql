@@ -16,7 +16,9 @@
 
 
 -- Dumping database structure for thltw_minhhien_ngocman_24e
-CREATE DATABASE IF NOT EXISTS `thltw_minhhien_ngocman_24e` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;
+-- Import this dump once into a new/empty database. It inserts fixed sample IDs and is not safe to re-import over existing data.
+-- Use a collation supported by MySQL 5.7+, MySQL 8.x, and MariaDB (including common XAMPP builds).
+CREATE DATABASE IF NOT EXISTS `thltw_minhhien_ngocman_24e` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE `thltw_minhhien_ngocman_24e`;
 
 -- Dumping structure for table thltw_minhhien_ngocman_24e.banners
