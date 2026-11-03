@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import api, { getErrorMessage } from "@/lib/axios";
+import { getAccessToken, getAuthUser } from "@/lib/auth";
 import couponService from "@/services/couponService";
 
 function VnpayInstructions() {
@@ -48,8 +49,8 @@ export default function CartPage() {
         if (savedCart) {
           setCartItems(JSON.parse(savedCart));
         }
-        const savedUser = JSON.parse(localStorage.getItem("user_info") || "{}");
-        const hasAccessToken = Boolean(localStorage.getItem("access_token"));
+        const savedUser = getAuthUser() || {};
+        const hasAccessToken = Boolean(getAccessToken());
         setIsLoggedIn(hasAccessToken);
         setIsCustomer(hasAccessToken && savedUser.role === "member");
         setCheckoutInfo({

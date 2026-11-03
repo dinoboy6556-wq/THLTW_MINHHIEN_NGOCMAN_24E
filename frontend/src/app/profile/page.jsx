@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import api from "@/lib/axios";
+import { getAccessToken, updateAuthUser } from "@/lib/auth";
 
 const emptyProfile = { username: "", email: "", phone: "", address: "" };
 
@@ -22,7 +23,7 @@ export default function ProfilePage() {
     let isMounted = true;
 
     const loadProfile = async () => {
-      if (!localStorage.getItem("access_token")) {
+      if (!getAccessToken()) {
         if (isMounted) {
           setError("Bạn cần đăng nhập để xem hồ sơ.");
           setLoading(false);
@@ -105,7 +106,7 @@ export default function ProfilePage() {
       setAvatarFile(null);
       setAvatarPreview("");
       setIsEditing(false);
-      localStorage.setItem("user_info", JSON.stringify(updatedUser));
+      updateAuthUser(updatedUser);
       setSuccess(response.data?.message || "Đã lưu hồ sơ của bạn.");
     } catch (requestError) {
       const validationErrors = requestError.response?.data?.errors;
