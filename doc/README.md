@@ -11,7 +11,7 @@
 
 1. Mở XAMPP Control Panel, bấm **Start** ở MySQL.
 2. Mở `http://localhost/phpmyadmin`.
-3. Chọn **Import / Nhập**, chọn file `doc/code.sql` của project rồi bấm **Thực hiện**.
+3. Chọn **Import / Nhập**, chọn file `doc/code.sql` của project rồi bấm **Thực hiện**.(Hoặc copy code trong file code.sql chép vào spl rồi chạy lệnh)
 4. Chỉ nhập vào database mới/rỗng. Nếu đã có dữ liệu, hãy Export sao lưu trước; không nhập file nhiều lần.
 
 ## 3. Cấu hình backend lần đầu
@@ -91,24 +91,24 @@ AWS_BUCKET=
 AWS_USE_PATH_STYLE_ENDPOINT=false
 
 VITE_APP_NAME="${APP_NAME}"
-OPENAI_API_KEY=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
+OPENAI_API_KEY=
 OPENAI_MODEL=gpt-6-luna
 OPENAI_RESPONSES_URL=https://api.openai.com/v1/responses
 
 VNPAY_FRONTEND_URL=http://localhost:3000
-VNPAY_TMN_CODE=TTJ1ZR4U
-VNPAY_RETURN_URL=https://spray-boxing-quizzical.ngrok-free.dev/backend-api/payments/vnpay/return
+VNPAY_TMN_CODE=
+VNPAY_RETURN_URL=http://127.0.0.1:8000/api/payments/vnpay/return
 VNPAY_PAYMENT_URL=https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
-VNPAY_HASH_SECRET=CZIUKTWLAELBGFBPSXXIEPWISGLGTNDM
+VNPAY_HASH_SECRET=
 
 
 MAIL_MAILER=smtp
 MAIL_SCHEME=smtp
 MAIL_HOST=smtp.gmail.com
 MAIL_PORT=587
-MAIL_USERNAME=dinoboy6556@gmail.com
-MAIL_PASSWORD=pdpbbkkrytqcwszh
-MAIL_FROM_ADDRESS=dinoboy6556@gmail.com
+MAIL_USERNAME=your-account@gmail.com
+MAIL_PASSWORD=your-new-16-character-app-password
+MAIL_FROM_ADDRESS=your-account@gmail.com
 MAIL_FROM_NAME="MyShop"
 ```
 
@@ -144,6 +144,7 @@ cd F:\Code\THLTW_MINHHIEN_NGOCMAN_24E\frontend
 npm install
 npm run dev
 ```
+
 
 Nếu cần đổi địa chỉ API, sao chép `frontend/.env.example` thành `frontend/.env.local` rồi sửa `NEXT_PUBLIC_API_URL`. File `.env.local` là cấu hình riêng trên máy, không đưa lên Git.
 
@@ -183,11 +184,39 @@ Trong trang thanh toán chọn **Chuyển khoản / QR qua VNPAY**. Khi VNPAY m�
 | Ngày phát hành (MM/YY) | `07/15` |
 | OTP | `123456` |
 
-Đây là thẻ thử trên môi trường sandbox, không phải thẻ ngân hàng thật. Nếu trang thanh toán từ chối giao dịch, project cần được cấu hình đúng mã kết nối merchant sandbox (`VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET`) trong `backend/.env`. Giao dịch callback cũng cần URL backend mà sandbox truy cập được; `127.0.0.1` chỉ truy cập được trên máy của bạn. Dùng COD để thử đặt hàng nếu chưa cấu hình sandbox.
+Đây là thẻ thử trên môi trường sandbox, không phải thẻ ngân hàng thật. Cần điền đúng thông tin merchant sandbox (`VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET`) vào `backend/.env`; không đưa các giá trị này lên Git.
+
+### Cho VNPAY gọi ngược về máy đang chạy
+
+VNPAY sandbox không truy cập được `127.0.0.1`. Khi thử thanh toán online, mở thêm một cửa sổ PowerShell và tạo đường hầm tới **backend ở cổng 8000**:
+
+```powershell
+ngrok http 8000
+```
+
+Trong dòng `Forwarding`, lấy địa chỉ HTTPS hiện tại, ví dụ `https://abc123.ngrok-free.dev`, rồi đặt trong `backend/.env`:
+
+```dotenv
+VNPAY_RETURN_URL=https://abc123.ngrok-free.dev/api/payments/vnpay/return
+```
+
+Thay `abc123...` bằng địa chỉ ngrok thật của bạn. Mỗi lần khởi động lại ngrok miễn phí, kiểm tra địa chỉ mới và cập nhật `VNPAY_RETURN_URL`. Sau đó chạy `php artisan config:clear` trong thư mục `backend`, khởi động lại Laravel và tạo giao dịch mới. Giữ cả Laravel lẫn ngrok đang chạy cho tới khi VNPAY chuyển về website. Nếu không có URL HTTPS đang hoạt động, callback không tới được máy và luồng thanh toán sẽ không hoàn tất.
 
 Thông tin thẻ thử theo [tài liệu sandbox chính thức của VNPAY](https://sandbox.vnpayment.vn/apis/docs/gioi-thieu/).
 
-## 8. Nhận email khi thanh toán thành công
+## 8. Ảnh sản phẩm bị mất khi chuyển project
+
+Database chỉ lưu **đường dẫn** ảnh, không lưu nội dung ảnh. Các ảnh mẫu của bản SQL đã được đặt trong `backend/public/images/products` để khi clone/import SQL, đường dẫn mẫu vẫn hoạt động.
+
+Ảnh do quản trị viên tải lên được lưu tại `backend/storage/app/public` và thư mục này không đưa lên Git. Khi chuyển sang máy/thư mục project mới, nếu còn bản cũ, hãy sao chép toàn bộ nội dung `backend/storage/app/public` sang cùng đường dẫn trong bản mới (giữ nguyên các thư mục `products`, `posts`, `avatars`, `reviews` nếu có), rồi chạy trong `backend`:
+
+```powershell
+php artisan storage:link
+```
+
+Nếu bản cũ và bản sao lưu đều không còn các file ảnh đã tải lên, chỉ có database thì không thể khôi phục ảnh gốc từ các đường dẫn; cần tải lại ảnh trong trang quản trị hoặc phục hồi từ backup.
+
+## 9. Nhận email khi thanh toán thành công
 
 Khi VNPAY xác nhận giao dịch thành công, hệ thống gửi email đến địa chỉ khách nhập trong đơn hàng. Email có mã đơn, sản phẩm, tổng tiền và trạng thái thanh toán. Để email được gửi ra Gmail thật:
 
@@ -211,7 +240,7 @@ MAIL_FROM_NAME="MyShop"
 
 Khi `MAIL_MAILER=log`, thư chỉ được ghi vào `backend/storage/logs/laravel.log`, không gửi tới Gmail. Không đưa App Password vào Git hoặc gửi trong ảnh chụp màn hình. Xem hướng dẫn của Google về [Mật khẩu ứng dụng](https://support.google.com/accounts/answer/185833) và [máy chủ SMTP Gmail](https://support.google.com/mail/answer/7104828).
 
-## 9. Kiểm tra nhanh
+## 10. Kiểm tra nhanh
 
 - Backend: mở `http://127.0.0.1:8000/up`; Laravel phải phản hồi.
 - Frontend: mở `http://localhost:3000`; thử xem sản phẩm và danh mục.
@@ -224,7 +253,7 @@ cd F:\Code\THLTW_MINHHIEN_NGOCMAN_24E\backend
 php artisan test
 ```
 
-## 10. Nếu website không lấy được dữ liệu
+## 11. Nếu website không lấy được dữ liệu
 
 1. Kiểm tra XAMPP MySQL đang chạy.
 2. Kiểm tra cửa sổ backend vẫn chạy ở cổng 8000.
