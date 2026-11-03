@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import api, { getErrorMessage } from "@/lib/axios";
+import { setAuthSession } from "@/lib/auth";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -26,8 +27,7 @@ export default function RegisterPage() {
       const response = await api.post("/register", form);
       const data = response.data;
 
-      localStorage.setItem("access_token", data.access_token);
-      localStorage.setItem("user_info", JSON.stringify(data.user));
+      setAuthSession(data.access_token, data.user);
 
       const redirect = new URLSearchParams(window.location.search).get("redirect");
       const returnPath =

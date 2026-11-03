@@ -5,14 +5,15 @@ import { useRouter } from "next/navigation";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import AdminHeader from "@/components/admin/AdminHeader";
 import api from "@/lib/axios";
+import { clearAuthSession, getAccessToken, getAuthUser } from "@/lib/auth";
 
 export default function AdminLayout({ children }) {
   const router = useRouter();
   const [adminUser, setAdminUser] = useState(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("access_token");
-    const user = JSON.parse(localStorage.getItem("user_info") || "{}");
+    const token = getAccessToken();
+    const user = getAuthUser() || {};
 
     if (!token || !["admin", "super_admin"].includes(user.role)) {
       alert("Vui lòng đăng nhập tài khoản Admin!");
@@ -30,8 +31,7 @@ export default function AdminLayout({ children }) {
     } catch (err) {
       console.error(err);
     } finally {
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("user_info");
+      clearAuthSession();
       router.push("/login");
     }
   };

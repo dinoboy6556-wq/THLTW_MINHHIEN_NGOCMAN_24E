@@ -82,6 +82,10 @@ Mở `http://localhost:3000`. Muốn tắt mỗi máy chủ, bấm **Ctrl+C** tr
 
 **Lưu ý:** đây là thông tin đăng nhập được ghi trong tài liệu project. Hãy đổi mật khẩu và xóa thông tin cá nhân khỏi README trước khi đưa project lên GitHub hoặc gửi cho người khác.
 
+### Mở user và admin cùng lúc trên hai tab
+
+Phiên đăng nhập được lưu riêng trong từng tab. Mở tab thứ nhất, đăng nhập user và vào trang chủ. Mở tab thứ hai, đăng nhập admin rồi vào `http://localhost:3000/admin`. Đăng nhập ở tab này sẽ không thay tài khoản trong tab kia. Sau cập nhật phiên đăng nhập, hãy đăng nhập lại ở mỗi tab một lần.
+
 ## 6. Cách áp mã khuyến mãi
 
 1. Đăng nhập, thêm sản phẩm vào giỏ và mở trang **Giỏ hàng/Thanh toán**.
@@ -105,7 +109,31 @@ Trong trang thanh toán chọn **Chuyển khoản / QR qua VNPAY**. Khi VNPAY m�
 
 Thông tin thẻ thử theo [tài liệu sandbox chính thức của VNPAY](https://sandbox.vnpayment.vn/apis/docs/gioi-thieu/).
 
-## 8. Kiểm tra nhanh
+## 8. Nhận email khi thanh toán thành công
+
+Khi VNPAY xác nhận giao dịch thành công, hệ thống gửi email đến địa chỉ khách nhập trong đơn hàng. Email có mã đơn, sản phẩm, tổng tiền và trạng thái thanh toán. Để email được gửi ra Gmail thật:
+
+1. Bật **Xác minh 2 bước** cho tài khoản Gmail dùng làm địa chỉ gửi.
+2. Tạo **Mật khẩu ứng dụng (App Password)** trong phần bảo mật tài khoản Google. Gmail SMTP yêu cầu đăng nhập SMTP; dùng App Password, không dùng mật khẩu Gmail thường.
+3. Điền cấu hình dưới đây vào `backend/.env` (thay bằng Gmail và App Password của bạn):
+
+```dotenv
+MAIL_MAILER=smtp
+MAIL_SCHEME=smtp
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=dinoboy6556@gmail.com
+MAIL_PASSWORD=pdpb bkkr ytqc wszh
+MAIL_FROM_ADDRESS=dinoboy6556@gmail.com
+MAIL_FROM_NAME="MyShop"
+```
+
+4. Trong PowerShell tại `backend`, chạy `php artisan config:clear`, sau đó khởi động lại Laravel.
+5. Đặt một đơn VNPAY sandbox bằng email của bạn và hoàn thành giao dịch bằng thẻ test ở mục trên. Kiểm tra Hộp thư đến/Spam.
+
+Khi `MAIL_MAILER=log`, thư chỉ được ghi vào `backend/storage/logs/laravel.log`, không gửi tới Gmail. Không đưa App Password vào Git hoặc gửi trong ảnh chụp màn hình. Xem hướng dẫn của Google về [Mật khẩu ứng dụng](https://support.google.com/accounts/answer/185833) và [máy chủ SMTP Gmail](https://support.google.com/mail/answer/7104828).
+
+## 9. Kiểm tra nhanh
 
 - Backend: mở `http://127.0.0.1:8000/up`; Laravel phải phản hồi.
 - Frontend: mở `http://localhost:3000`; thử xem sản phẩm và danh mục.

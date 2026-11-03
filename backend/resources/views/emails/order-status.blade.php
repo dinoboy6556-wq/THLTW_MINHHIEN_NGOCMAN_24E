@@ -1,6 +1,3 @@
-<div>
-    <!-- Because you are alive, everything is possible. - Thich Nhat Hanh -->
-</div>
 <!doctype html>
 <html lang="vi">
 <head>
@@ -15,6 +12,8 @@
         <p>Xin chào {{ $order->cus_name }},</p>
         <p>Đơn hàng <strong>{{ $order->order_code }}</strong> {{ mb_strtolower($eventLabel) }}.</p>
         <p>Trạng thái hiện tại: <strong>{{ [0 => 'Chờ xử lý', 1 => 'Đã xác nhận', 2 => 'Đang giao', 3 => 'Hoàn thành', 4 => 'Đã hủy'][$order->status] ?? 'Đang cập nhật' }}</strong></p>
+        <p>Thanh toán: <strong>{{ $order->payment_status === 'paid' ? 'Đã thanh toán' : ($order->payment_status === 'failed' ? 'Thanh toán thất bại' : 'Đang chờ thanh toán') }}</strong></p>
+        <p>Phương thức: <strong>{{ $order->payment_method === 'vnpay' ? 'VNPAY (chuyển khoản / QR)' : 'Thanh toán khi nhận hàng' }}</strong></p>
         <ul>
             @foreach ($order->items as $item)
                 <li>{{ $item->product?->name ?? 'Sản phẩm' }} × {{ $item->quantity }}</li>

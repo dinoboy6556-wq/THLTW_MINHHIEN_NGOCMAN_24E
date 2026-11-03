@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import userService from "@/services/userService";
 import { getErrorMessage } from "@/lib/axios";
+import { getAuthUser } from "@/lib/auth";
 
 export default function AdminUserPage() {
   const [users, setUsers] = useState([]);
@@ -26,22 +27,14 @@ export default function AdminUserPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
 
-  // 1. Tự động đọc thông tin người dùng đang đăng nhập từ Local Storage
+  // 1. Đọc người dùng đang đăng nhập trong tab hiện tại
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const rawUserData =
-        localStorage.getItem("user_info") || localStorage.getItem("user");
-      if (rawUserData) {
-        try {
-          const parsedUser = JSON.parse(rawUserData);
-          queueMicrotask(() => {
-            setCurrentUser(parsedUser);
-            setCurrentUserRole(parsedUser.role || "admin");
-          });
-        } catch (err) {
-          console.error("Lỗi đọc dữ liệu người dùng từ LocalStorage:", err);
-        }
-      }
+    const parsedUser = getAuthUser();
+    if (parsedUser) {
+      queueMicrotask(() => {
+        setCurrentUser(parsedUser);
+        setCurrentUserRole(parsedUser.role || "admin");
+      });
     }
   }, []);
 

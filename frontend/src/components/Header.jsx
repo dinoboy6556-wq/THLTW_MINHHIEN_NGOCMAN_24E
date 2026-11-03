@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '@/lib/axios';
+import { addAuthListener, clearAuthSession, getAuthUser } from '@/lib/auth';
 import menuService from '@/services/menuService';
 
 const defaultMenuItems = [
@@ -21,18 +22,9 @@ export default function Header() {
   const router = useRouter();
 
   useEffect(() => {
-    const userInfo = localStorage.getItem('user_info');
-    if (userInfo) {
-      try {
-        const parsedUser = JSON.parse(userInfo);
-        // Bọc trong queueMicrotask để tránh gọi setState đồng bộ trực tiếp trong useEffect
-        queueMicrotask(() => {
-          setUser(parsedUser);
-        });
-      } catch (err) {
-        console.error('Lỗi parse thông tin user:', err);
-      }
-    }
+    const syncUser = () => setUser(getAuthUser());
+    queueMicrotask(syncUser);
+    return addAuthListener(syncUser);
   }, []);
 
   useEffect(() => {
@@ -74,8 +66,7 @@ export default function Header() {
     } catch (err) {
       console.error(err);
     } finally {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('user_info');
+      clearAuthSession();
       setUser(null);
       router.push('/login');
     }

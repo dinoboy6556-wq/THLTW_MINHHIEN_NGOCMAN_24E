@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { clearAuthSession, getAccessToken } from '@/lib/auth';
 
 // 1. Tạo instance Axios chuẩn
 const api = axios.create({
@@ -15,7 +16,7 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('access_token');
+      const token = getAccessToken();
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -33,8 +34,7 @@ api.interceptors.response.use(
       typeof window !== 'undefined' &&
       window.location.pathname.startsWith('/admin')
     ) {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('user_info');
+      clearAuthSession();
       window.location.replace('/login');
     }
 

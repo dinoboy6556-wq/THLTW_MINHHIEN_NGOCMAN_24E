@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import productService from "@/services/productService";
 import { getErrorMessage } from "@/lib/axios";
 import { addToCart } from "@/lib/cart";
+import { getAccessToken } from "@/lib/auth";
 
 const formatPrice = (price) => Number(price || 0).toLocaleString("vi-VN");
 
@@ -190,7 +191,7 @@ export default function ProductDetailPage() {
     setReviewError("");
     setReviewMessage("");
 
-    if (!localStorage.getItem("access_token")) {
+    if (!getAccessToken()) {
       setRequiresLogin(true);
       setReviewError("Vui lòng đăng nhập để gửi đánh giá.");
       return;
@@ -222,7 +223,7 @@ export default function ProductDetailPage() {
   };
 
   const updateProductReaction = async (reaction) => {
-    if (!localStorage.getItem("access_token")) {
+    if (!getAccessToken()) {
       setReviewError("Vui lòng đăng nhập để thích, không thích hoặc lưu yêu thích.");
       setRequiresLogin(true);
       return;
@@ -241,7 +242,7 @@ export default function ProductDetailPage() {
   };
 
   const toggleFavorite = async () => {
-    if (!localStorage.getItem("access_token")) {
+    if (!getAccessToken()) {
       setReviewError("Vui lòng đăng nhập để lưu sản phẩm yêu thích.");
       setRequiresLogin(true);
       return;

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import api from '@/lib/axios';
+import { setAuthSession } from '@/lib/auth';
 
 export default function LoginPage() {
   const [login, setLogin] = useState('');
@@ -22,9 +23,8 @@ export default function LoginPage() {
       const data = response.data;
 
       if (data.success) {
-        // Lưu Bearer Token và Thông tin User vào localStorage
-        localStorage.setItem('access_token', data.access_token);
-        localStorage.setItem('user_info', JSON.stringify(data.user));
+        // Mỗi tab giữ phiên đăng nhập riêng để user và admin dùng song song.
+        setAuthSession(data.access_token, data.user);
 
         // Phân luồng điều hướng theo Role
         if (['admin', 'super_admin'].includes(data.user.role)) {
