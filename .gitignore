@@ -81,3 +81,8 @@ Thumbs.db
 Desktop.ini
 $RECYCLE.BIN/
 *.cache
+
+# Keep project documentation, SQL dump, and sample assets under version control.
+!/doc/
+!/doc/**
+

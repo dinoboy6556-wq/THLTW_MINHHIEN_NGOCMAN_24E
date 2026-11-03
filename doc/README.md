@@ -69,6 +69,8 @@ npm install
 npm run dev
 ```
 
+Nếu cần đổi địa chỉ API, sao chép `frontend/.env.example` thành `frontend/.env.local` rồi sửa `NEXT_PUBLIC_API_URL`. File `.env.local` là cấu hình riêng trên máy, không đưa lên Git.
+
 Mở `http://localhost:3000`. Muốn tắt mỗi máy chủ, bấm **Ctrl+C** trong cửa sổ tương ứng.
 
 ## 5. Tài khoản dùng thử
