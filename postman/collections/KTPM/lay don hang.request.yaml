@@ -1,9 +1,0 @@
-$kind: http-request
-description: ""
-url: http://localhost:8000/api/my-orders
-method: GET
-auth:
-  type: bearer
-  credentials:
-    token: 48|jzFezcsgBBrLOzVws5dlcUPXTTXJz8o2g0A2SKb3e4df529d
-order: 13000

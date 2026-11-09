@@ -260,3 +260,4 @@ php artisan test
 4. Kiểm tra tên database và `DB_*` trong `backend/.env`.
 5. Sau khi sửa `.env`, chạy `php artisan config:clear` và khởi động lại backend.
 6. Giữ hai cửa sổ PowerShell chạy trong lúc sử dụng website.
+

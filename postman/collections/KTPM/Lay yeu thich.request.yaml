@@ -1,9 +1,0 @@
-$kind: http-request
-description: ""
-url: http://localhost:8000/api/favorites
-method: GET
-auth:
-  type: bearer
-  credentials:
-    token: 45|XnuI8iW0CZRKqKNDRmVbGCSeUG6wuYodN0iu6PA2366749f7
-order: 11000
