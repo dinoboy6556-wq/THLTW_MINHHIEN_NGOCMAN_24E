@@ -1,0 +1,32 @@
+$kind: http-request
+description: Tự sinh username/email mới mỗi lần gửi; password mặc định TestPass123!.
+url: "{{base_url}}/api/register"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "username": "{{member_username}}",
+      "email": "{{member_email}}",
+      "password": "{{member_password}}",
+      "password_confirmation": "{{member_password}}",
+      "phone": "0901234567",
+      "address": "Dia chi kiem thu"
+    }
+scripts:
+  - type: beforeRequest
+    code: |-
+      const suffix = Date.now().toString() + Math.floor(Math.random()*1000).toString();
+      pm.collectionVariables.set("member_username", "pm_member_" + suffix);
+      pm.collectionVariables.set("member_email", "pm_member_" + suffix + "@example.com");
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 201", function () { pm.response.to.have.status(201); });
+      pm.test("Response la JSON", function () { pm.response.to.be.json; });
+      const b=pm.response.json(); if (b.access_token) pm.collectionVariables.set("member_token", b.access_token);
+    language: text/javascript
+order: 1000

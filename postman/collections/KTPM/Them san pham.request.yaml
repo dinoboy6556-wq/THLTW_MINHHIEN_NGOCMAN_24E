@@ -1,0 +1,30 @@
+$kind: http-request
+description: ""
+url: http://localhost:8000/api/admin/products
+method: POST
+body:
+  type: json
+  content: "\r
+
+    {\r
+
+    \  \"name\": \"Tai nghe Bluetooth mau\",\r
+
+    \  \"cate_id\": 1,\r
+
+    \  \"brand_id\": 1,\r
+
+    \  \"price\": 500000,\r
+
+    \  \"promo_price\": 450000,\r
+
+    \  \"stock\": 10,\r
+
+    \  \"status\": 1\r
+
+    }\r\n"
+auth:
+  type: bearer
+  credentials:
+    token: 43|gorgtdnNtF5rpRj9hrLFndrVJrrFSGldo2OujV6E5bcf3a19
+order: 7000

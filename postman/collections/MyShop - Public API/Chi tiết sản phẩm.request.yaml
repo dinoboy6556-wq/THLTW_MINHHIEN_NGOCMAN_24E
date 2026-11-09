@@ -1,0 +1,13 @@
+$kind: http-request
+url: "{{base_url}}/api/products/{{product_slug}}"
+method: GET
+headers:
+  Accept: application/json
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200", function () { pm.response.to.have.status(200); });
+      pm.test("Response la JSON", function () { pm.response.to.be.json; });
+      pm.test("Co thong tin san pham", function () { pm.expect(pm.response.json()).to.have.property("data"); });
+    language: text/javascript
+order: 3000

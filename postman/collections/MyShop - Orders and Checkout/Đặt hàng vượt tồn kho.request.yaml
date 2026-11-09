@@ -1,0 +1,34 @@
+$kind: http-request
+description: Ca âm tính; dùng sản phẩm test, không tạo đơn nếu validation hoạt động đúng.
+url: "{{base_url}}/api/orders"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "cus_name": "{{member_username}}",
+      "cus_email": "{{member_email}}",
+      "cus_phone": "0901234567",
+      "cus_address": "Dia chi kiem thu",
+      "payment_method": "cod",
+      "items": [
+        {
+          "product_id": "{{product_id}}",
+          "quantity": 999999
+        }
+      ]
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{member_token}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 422", function () { pm.response.to.have.status(422); });
+      pm.test("Response la JSON", function () { pm.response.to.be.json; });
+    language: text/javascript
+order: 3000

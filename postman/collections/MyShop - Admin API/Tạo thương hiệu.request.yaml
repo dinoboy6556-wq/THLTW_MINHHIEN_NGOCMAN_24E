@@ -1,0 +1,28 @@
+$kind: http-request
+description: Dùng tên được sinh bởi request Tạo danh mục; lưu brand_id.
+url: "{{base_url}}/api/admin/brands"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "{{brand_name}}",
+      "logo": null,
+      "description": "Brand tao boi Postman",
+      "status": 1
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{admin_token}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 201", function () { pm.response.to.have.status(201); });
+      pm.test("Response la JSON", function () { pm.response.to.be.json; });
+      const b=pm.response.json(); if (b.data && b.data.id) pm.collectionVariables.set("brand_id", b.data.id);
+    language: text/javascript
+order: 6000

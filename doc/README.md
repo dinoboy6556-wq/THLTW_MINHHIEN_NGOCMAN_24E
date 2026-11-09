@@ -145,17 +145,16 @@ npm install
 npm run dev
 ```
 
-
 Nếu cần đổi địa chỉ API, sao chép `frontend/.env.example` thành `frontend/.env.local` rồi sửa `NEXT_PUBLIC_API_URL`. File `.env.local` là cấu hình riêng trên máy, không đưa lên Git.
 
 Mở `http://localhost:3000`. Muốn tắt mỗi máy chủ, bấm **Ctrl+C** trong cửa sổ tương ứng.
 
 ## 5. Tài khoản dùng thử
 
-| Vai trò | Tên đăng nhập | Email | Mật khẩu |
-|---|---|---|---|
-| Admin | `admin_test` | `admin@example.com` | `123456` |
-| Người dùng | `MinhHien` | `hienhoingao123@gmail.com` | `12345678` |
+| Vai trò    | Tên đăng nhập | Email                      | Mật khẩu   |
+| ---------- | ------------- | -------------------------- | ---------- |
+| Admin      | `admin_test`  | `admin@example.com`        | `123456`   |
+| Người dùng | `MinhHien`    | `hienhoingao123@gmail.com` | `12345678` |
 
 Đăng nhập tại trang **Đăng nhập**; tài khoản admin sẽ vào trang quản trị. Nếu không đăng nhập được, database có thể đang lưu mật khẩu khác với thông tin trên.
 
@@ -177,12 +176,12 @@ Phiên đăng nhập được lưu riêng trong từng tab. Mở tab thứ nhấ
 
 Trong trang thanh toán chọn **Chuyển khoản / QR qua VNPAY**. Khi VNPAY mở trang thanh toán, chọn ngân hàng **NCB** và nhập thẻ thử nghiệm:
 
-| Trường trên VNPAY | Giá trị thử |
-|---|---|
-| Số thẻ | `9704198526191432198` |
-| Tên chủ thẻ | `NGUYEN VAN A` |
-| Ngày phát hành (MM/YY) | `07/15` |
-| OTP | `123456` |
+| Trường trên VNPAY      | Giá trị thử           |
+| ---------------------- | --------------------- |
+| Số thẻ                 | `9704198526191432198` |
+| Tên chủ thẻ            | `NGUYEN VAN A`        |
+| Ngày phát hành (MM/YY) | `07/15`               |
+| OTP                    | `123456`              |
 
 Đây là thẻ thử trên môi trường sandbox, không phải thẻ ngân hàng thật. Cần điền đúng thông tin merchant sandbox (`VNPAY_TMN_CODE`, `VNPAY_HASH_SECRET`) vào `backend/.env`; không đưa các giá trị này lên Git.
 

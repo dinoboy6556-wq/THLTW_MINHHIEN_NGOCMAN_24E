@@ -1,0 +1,17 @@
+$kind: http-request
+description: Đảm bảo member_token đã được cấp bởi collection Authentication.
+url: "{{base_url}}/api/admin/categories"
+method: GET
+headers:
+  Accept: application/json
+auth:
+  type: bearer
+  credentials:
+    token: "{{member_token}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 403", function () { pm.response.to.have.status(403); });
+      pm.test("Response la JSON", function () { pm.response.to.be.json; });
+    language: text/javascript
+order: 10000

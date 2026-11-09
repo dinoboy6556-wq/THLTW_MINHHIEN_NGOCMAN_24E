@@ -1,0 +1,12 @@
+$kind: http-request
+description: ""
+url: http://localhost:8000/api/products?min_price=100000&max_price=1000000&sort_by=price_asc&per_page=5
+method: POST
+queryParams:
+  min_price: "100000"
+  max_price: "1000000"
+  sort_by: price_asc
+  per_page: "5"
+auth:
+  type: bearer
+order: 10000

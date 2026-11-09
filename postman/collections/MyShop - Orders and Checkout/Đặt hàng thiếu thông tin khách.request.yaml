@@ -1,0 +1,29 @@
+$kind: http-request
+url: "{{base_url}}/api/orders"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "payment_method": "cod",
+      "items": [
+        {
+          "product_id": "{{product_id}}",
+          "quantity": 1
+        }
+      ]
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{member_token}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 422", function () { pm.response.to.have.status(422); });
+      pm.test("Response la JSON", function () { pm.response.to.be.json; });
+    language: text/javascript
+order: 4000

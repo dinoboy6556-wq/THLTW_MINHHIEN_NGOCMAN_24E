@@ -1,0 +1,35 @@
+$kind: http-request
+description: Tự sinh tên mới; ID trả về được lưu vào category_id.
+url: "{{base_url}}/api/admin/categories"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "{{category_name}}",
+      "parent_id": null,
+      "description": "Danh muc tao boi Postman",
+      "status": 1
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{admin_token}}"
+scripts:
+  - type: beforeRequest
+    code: |-
+      const s = Date.now().toString();
+      pm.collectionVariables.set("category_name", "Danh muc PM " + s);
+      pm.collectionVariables.set("brand_name", "Brand PM " + s);
+      pm.collectionVariables.set("product_name", "San pham PM " + s);
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 201", function () { pm.response.to.have.status(201); });
+      pm.test("Response la JSON", function () { pm.response.to.be.json; });
+      const b=pm.response.json(); if (b.data && b.data.id) pm.collectionVariables.set("category_id", b.data.id);
+    language: text/javascript
+order: 3000

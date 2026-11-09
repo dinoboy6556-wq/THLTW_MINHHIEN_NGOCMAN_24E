@@ -1,0 +1,20 @@
+$kind: http-request
+url: "{{base_url}}/api/coupons/validate"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "code": "NO_SUCH_COUPON_999",
+      "subtotal": 1000000
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 422", function () { pm.response.to.have.status(422); });
+      pm.test("Response la JSON", function () { pm.response.to.be.json; });
+    language: text/javascript
+order: 14000

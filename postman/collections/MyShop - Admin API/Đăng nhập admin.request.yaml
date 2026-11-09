@@ -1,0 +1,22 @@
+$kind: http-request
+description: Điền admin_login và admin_password vào Collection Variables trước khi chạy.
+url: "{{base_url}}/api/login"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "login": "{{admin_login}}",
+      "password": "{{admin_password}}"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200", function () { pm.response.to.have.status(200); });
+      pm.test("Response la JSON", function () { pm.response.to.be.json; });
+      const b=pm.response.json(); if (b.access_token) pm.collectionVariables.set("admin_token", b.access_token);
+    language: text/javascript
+order: 1000

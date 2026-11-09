@@ -1,0 +1,19 @@
+$kind: http-request
+description: Đặt biến keyword, min_price, max_price trong Collection/Environment trước khi gửi.
+url: "{{base_url}}/api/products?keyword={{keyword}}&min_price={{min_price}}&max_price={{max_price}}&sort_by=price_asc&per_page=5"
+method: GET
+headers:
+  Accept: application/json
+queryParams:
+  keyword: "{{keyword}}"
+  min_price: "{{min_price}}"
+  max_price: "{{max_price}}"
+  sort_by: price_asc
+  per_page: "5"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 200", function () { pm.response.to.have.status(200); });
+      pm.test("Response la JSON", function () { pm.response.to.be.json; });
+    language: text/javascript
+order: 2000

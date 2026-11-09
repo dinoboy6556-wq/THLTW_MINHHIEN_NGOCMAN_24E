@@ -1,0 +1,27 @@
+$kind: http-request
+description: Chạy sau request Tạo danh mục trong cùng collection.
+url: "{{base_url}}/api/admin/categories"
+method: POST
+headers:
+  Accept: application/json
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "{{category_name}}",
+      "parent_id": null,
+      "description": "Trung ten de test validation",
+      "status": 1
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{admin_token}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("HTTP 422", function () { pm.response.to.have.status(422); });
+      pm.test("Response la JSON", function () { pm.response.to.be.json; });
+    language: text/javascript
+order: 5000

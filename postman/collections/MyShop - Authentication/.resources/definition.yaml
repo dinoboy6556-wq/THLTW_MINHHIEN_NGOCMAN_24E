@@ -1,0 +1,23 @@
+$kind: collection
+description: Đăng ký, đăng nhập, hồ sơ và đăng xuất. Chạy theo thứ tự; đăng ký tự tạo email duy nhất.
+variables:
+  base_url: http://127.0.0.1:8000
+  member_token: ""
+  admin_token: ""
+  product_id: ""
+  product_slug: ""
+  category_id: ""
+  brand_id: ""
+  order_id: ""
+  review_id: ""
+  coupon_code: ""
+  member_username: ""
+  member_email: ""
+  member_password: TestPass123!
+  admin_login: ""
+  admin_password: ""
+  keyword: test
+  min_price: "0"
+  max_price: "10000000"
+  brand_slug: ""
+  timestamp: test
